@@ -1,0 +1,74 @@
+<div x-show="add_subject_modal" 
+     style="display: none;"
+     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-cloak>
+    
+    <div @click.away="add_subject_modal = false"
+         class="bg-white rounded-[24px] shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden flex flex-col font-khmer">
+        
+        <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
+            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <i class="fas fa-book"></i>
+                </div>
+                <span>បន្ថែមមុខវិជ្ជាថ្មី</span>
+            </h3>
+            <button @click="add_subject_modal = false" class="text-slate-400 hover:text-rose-500 rounded-full p-2 transition-colors">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-8 space-y-5 bg-slate-50/30">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ឈ្មោះមុខវិជ្ជា</label>
+                <input type="text" x-model="subjectForm.subject_name" placeholder="ឧ. Database Systems"
+                       class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ដេប៉ាតឺម៉ង់</label>
+                <select x-model="subjectForm.department_id" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all">
+                    <option value="">-- ជ្រើសរើសដេប៉ាតឺម៉ង់ --</option>
+                    {% for dep in departments %}
+                        <option value="{{ dep.id }}">{{ dep.department_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ឆ្នាំសិក្សា</label>
+                <select x-model="subjectForm.year_id" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all">
+                    <option value="">-- ជ្រើសរើសឆ្នាំសិក្សា --</option>
+                    {% for year in academic_years %}
+                        <option value="{{ year.id }}">{{ year.year_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ឆមាស</label>
+                    <select x-model="subjectForm.semester" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all">
+                        <option value="1">ឆមាសទី 1</option>
+                        <option value="2">ឆមាសទី 2</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ក្រេឌីត</label>
+                    <input type="number" min="1" x-model="subjectForm.credits" placeholder="3"
+                           class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all">
+                </div>
+            </div>
+        </div>
+
+        <div class="px-8 py-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+            <button @click="add_subject_modal = false" class="px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-all">បោះបង់</button>
+            <button @click="saveSubject()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center gap-2">
+                <i class="fas fa-save"></i> រក្សាទុក
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,31 @@
+<div x-show="role === 'admin' && activeTab === 'admin_overview'" x-cloak class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+            <i class="fas fa-users"></i>
+        </div>
+        <div>
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest font-khmer">អ្នកប្រើប្រាស់សរុប</p>
+            <p class="text-2xl font-bold text-slate-800" x-text="users.length"></p>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+            <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div>
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest font-khmer">គ្រូបង្រៀន</p>
+            <p class="text-2xl font-bold text-slate-800" x-text="users.filter(u => u.role === 'Teacher').length"></p>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center text-xl">
+            <i class="fas fa-graduation-cap"></i>
+        </div>
+        <div>
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest font-khmer">សិស្សានុសិស្ស</p>
+            <p class="text-2xl font-bold text-slate-800" x-text="users.filter(u => u.role === 'Student').length"></p>
+        </div>
+    </div>
+</div>

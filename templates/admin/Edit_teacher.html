@@ -1,0 +1,63 @@
+<div x-show="edit_teacher_modal" 
+     class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+     x-transition.opacity x-cloak>
+    
+    <div @click.away="edit_teacher_modal = false" 
+         class="bg-white rounded-[24px] shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden flex flex-col font-khmer">
+        
+        <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
+            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                    <i class="fas fa-user-edit"></i>
+                </div>
+                <span>កែប្រែព័ត៌មានគ្រូបង្រៀន</span>
+            </h3>
+            <button type="button" @click="edit_teacher_modal = false" class="text-slate-400 hover:text-rose-500 rounded-full p-2">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-8 space-y-5 bg-slate-50/30">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ឈ្មោះគ្រូបង្រៀន</label>
+                <input type="text" x-model="teacherForm.teacher_name" disabled 
+                       class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">អត្តលេខគ្រូ</label>
+                    <input type="text" x-model="teacherForm.teacher_code" 
+                           class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/10 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ដេប៉ាតឺម៉ង់</label>
+                    <select x-model="teacherForm.department_id" @change="teacherForm.subject_id = ''" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/10 outline-none transition-all">
+                        <template x-for="dep in departments" :key="dep.id">
+                            <option :value="dep.id" x-text="dep.department_name"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">មុខវិជ្ជាបង្រៀន/ជំនាញ</label>
+                <select x-model="teacherForm.subject_id" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/10 outline-none transition-all">
+                    <option value="">-- ជ្រើសរើសមុខវិជ្ជា --</option>
+                    <template x-for="subject in subjects" :key="subject.id">
+                        <template x-if="!teacherForm.department_id || String(subject.department_id) === String(teacherForm.department_id)">
+                            <option :value="subject.id" x-text="subject.subject_name"></option>
+                        </template>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <div class="px-8 py-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+            <button type="button" @click="edit_teacher_modal = false" class="px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl">បោះបង់</button>
+            <button type="button" @click="updateTeacher()" class="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold shadow-lg shadow-amber-200 hover:bg-amber-600 transition-all flex items-center gap-2">
+                <i class="fas fa-check-circle"></i> រក្សាទុកការកែប្រែ
+            </button>
+        </div>
+    </div>
+</div>

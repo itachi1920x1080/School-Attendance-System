@@ -1,0 +1,133 @@
+<div x-show="activeTab === 'admin_students'" x-cloak class="w-full font-khmer space-y-5">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-extrabold text-slate-800">បញ្ជីសិស្ស (Students List)</h2>
+            <p class="text-sm text-slate-400 mt-1">គ្រប់គ្រងសិស្ស</p>
+        </div>
+        
+        <button type="button" @click="openStudentModal('add')"
+                class="w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-violet-200 flex items-center justify-center gap-2">
+            <i class="fas fa-plus"></i>
+            <span>បន្ថែមសិស្សថ្មី</span>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <h3 class="text-lg font-bold text-slate-800">ព័ត៌មានសិស្ស</h3>
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div class="relative w-full sm:w-64">
+                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" x-model="searchQuery" placeholder="ស្វែងរកឈ្មោះថ្នាក់..."
+                           class="w-full pl-9 pr-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all shadow-sm">
+                </div>
+
+                <select x-model="classOrderBy" title="តម្រៀបតាម" aria-label="តម្រៀបតាម" class="bg-white text-slate-700 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-sm">
+                    <option value="class_name">តម្រៀបតាមឈ្មោះថ្នាក់</option>
+                    <option value="department_name">តម្រៀបតាមដេប៉ាតឺម៉ង់</option>
+                    <option value="academic_year">តម្រៀបតាមឆ្នាំសិក្សា</option>
+                </select>
+
+                <select x-model="classFilter.year_id" title="ឆ្នាំសិក្សា" aria-label="ឆ្នាំសិក្សា" class="bg-white text-slate-700 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-sm">
+                    <option value="">ទាំងអស់ឆ្នាំសិក្សា</option>
+                    <template x-for="year in academic_years" :key="year.id">
+                        <option :value="year.id" x-text="year.year_name"></option>
+                    </template>
+                </select>
+
+                <button type="button" @click="toggleClassSortDirection()" title="ប្តូរទិសតម្រៀប" aria-label="ប្តូរទិសតម្រៀប" class="bg-white text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm text-sm font-semibold">
+                    <i :class="classOrderDir === 'asc' ? 'fas fa-sort-amount-up-alt' : 'fas fa-sort-amount-down-alt'"></i>
+                    <span x-text="classOrderDir === 'asc' ? 'ASC' : 'DESC'"></span>
+                </button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-100">
+            <table class="w-full min-w-[1100px] text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                        <th class="py-4 px-4 w-12 text-center">ល.រ</th>
+                        <th class="py-4 px-4">ឈ្មោះសិស្ស</th>
+                        <th class="py-4 px-4">អត្តលេខ</th>
+                        <th class="py-4 px-4">អាសយដ្ឋាន</th>
+                        <th class="py-4 px-4">ជំនាញ / ដេប៉ាតឺម៉ង់</th>
+                        <th class="py-4 px-4">បន្ថែមដោយ</th>
+                        <th class="py-4 px-4">ថ្នាក់រៀន</th>
+                        <th class="py-4 px-4">ឆ្នាំសិក្សា</th>
+                        <th class="py-4 px-4 text-center">សកម្មភាព</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    <template x-for="(user, index) in filteredSortedStudents" :key="user.id || index">
+                        <tr class="border-b border-slate-50 hover:bg-violet-50/30 transition-colors">
+                            <td class="py-3 px-4 text-center text-slate-500 font-medium" x-text="index + 1"></td>
+
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-700 flex items-center justify-center text-sm font-bold border border-violet-200">
+                                        <span x-text="((user.student_name || user.name || 'S').charAt(0)).toUpperCase()"></span>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-700" x-text="user.student_name || user.name || 'មិនស្គាល់'"></div>
+                                        <div class="text-[10px] text-slate-400" x-text="user.email || ''"></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="py-3 px-4 font-mono text-slate-600 text-xs" x-text="user.id_number || user.student_code || 'N/A'"></td>
+                            <td class="py-3 px-4 text-slate-600 text-xs" x-text="user.address || 'N/A'"></td>
+
+                            <td class="py-3 px-4 text-slate-600" x-text="user.department_name || (departments.find(d => String(d.id) === String(user.department_id || user.department)) || {}).department_name || 'N/A'"></td>
+                            <td class="py-3 px-4 text-slate-600 text-xs" x-text="user.created_by_name || 'System'"></td>
+
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium border border-slate-200"
+                                      x-text="user.class_name || user.class_id || 'N/A'">
+                                </span>
+                            </td>
+
+                            <td class="py-3 px-4 text-slate-600 text-xs" x-text="user.year_name || user.academic_year_name || 'N/A'"></td>
+
+                            <td class="py-3 px-4">
+                                <div class="flex items-center justify-center gap-2">
+                                        <button type="button"
+                                            @click.stop="openStudentModal('edit', user)"
+                                            class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                                            title="កែប្រែ">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button"
+                                            @click.stop="deleteUser(user.user_id || user.id)"
+                                            class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                            title="លុបចោល">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+
+                    <tr x-show="filteredSortedStudents.length === 0" x-cloak>
+                        <td colspan="9" class="py-12 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center gap-3">
+                                <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center">
+                                    <i class="fas fa-users text-2xl text-slate-300"></i>
+                                </div>
+                                <span>រកមិនឃើញទិន្នន័យសិស្សឡើយ...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+            <div class="text-sm text-slate-500">
+                សរុបសិស្ស៖ <span class="font-bold text-violet-600" x-text="filteredSortedStudents.length"></span> នាក់
+            </div>
+        </div>
+    </div>
+
+    {% include 'admin/add_Student.html' %}
+    {% include 'admin/Edit_student.html' %}
+</div>

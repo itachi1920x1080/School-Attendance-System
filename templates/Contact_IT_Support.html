@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col gap-8 w-full font-khmer pb-10" x-data="{ 
+    ticketForm: { subject: '', category: 'System Bug', priority: 'Medium', description: '' },
+    isSubmitting: false,
+    async submitTicket() {
+        this.isSubmitting = true;
+        try {
+            const response = await fetch('/api/submit_ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.ticketForm)
+            });
+            const result = await response.json();
+            if (response.ok && result.status === 'success') {
+                alert(result.message);
+                this.ticketForm = { subject: '', category: 'System Bug', priority: 'Medium', description: '' };
+            } else {
+                alert(result.message || 'មានបញ្ហាក្នុងការបញ្ជូនសំណើ!');
+            }
+        } catch (error) {
+            alert('មិនអាចភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេបានទេ។');
+        } finally {
+            this.isSubmitting = false;
+        }
+    }
+}">
+    
+    <div class="bg-gradient-to-r from-blue-600 to-violet-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden flex items-center justify-between">
+        <div class="relative z-10">
+            <h1 class="text-3xl font-black mb-2 flex items-center gap-3 tracking-tight">
+                <i class="fas fa-headset"></i> ទាក់ទងផ្នែកបច្ចេកទេស (IT Support)
+            </h1>
+            <p class="text-blue-100 font-medium">ពួកយើងនៅទីនេះដើម្បីជួយដោះស្រាយរាល់បញ្ហាបច្ចេកទេសរបស់លោកអ្នក ២៤/៧។</p>
+        </div>
+        <i class="fas fa-life-ring text-8xl absolute -right-4 -top-4 text-white/10 transform rotate-12"></i>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-2 space-y-8">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-ticket-alt text-blue-600"></i> បង្កើតសំបុត្រស្នើសុំជំនួយ (Submit a Ticket)
+                </h3>
+                
+                <form @submit.prevent="submitTicket" class="space-y-5">
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">ចំណងជើងបញ្ហា <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="ticketForm.subject" required placeholder="ឧ. មិនអាចចូលគណនីបាន..." 
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">ប្រភេទបញ្ហា</label>
+                            <select x-model="ticketForm.category" 
+                                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+                                <option value="Account Access">បញ្ហាគណនី / ភ្លេចលេខសម្ងាត់</option>
+                                <option value="System Bug">កំហុសប្រព័ន្ធ (System Bug)</option>
+                                <option value="Network">បញ្ហាបណ្តាញ (Network)</option>
+                                <option value="Hardware">បញ្ហាឧបករណ៍ (Hardware)</option>
+                                <option value="Other">ផ្សេងៗ</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">កម្រិតអាទិភាព</label>
+                            <select x-model="ticketForm.priority" 
+                                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+                                <option value="Low">ទាប (Low)</option>
+                                <option value="Medium">មធ្យម (Medium)</option>
+                                <option value="High">ខ្ពស់ / បន្ទាន់ (High)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">ការពិពណ៌នាលម្អិត <span class="text-rose-500">*</span></label>
+                        <textarea x-model="ticketForm.description" required rows="5" placeholder="សូមរៀបរាប់ពីបញ្ហាដែលលោកអ្នកកំពុងជួបប្រទះឱ្យបានលម្អិត..." 
+                                  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all resize-none"></textarea>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" :disabled="isSubmitting" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all flex items-center gap-2 disabled:opacity-70">
+                            <i class="fas" :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i> 
+                            <span x-text="isSubmitting ? 'កំពុងបញ្ជូន...' : 'បញ្ជូនសំណើ'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">ទំនាក់ទំនងផ្ទាល់</h3>
+                <div class="space-y-5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">លេខទូរសព្ទ</p>
+                            <p class="font-bold text-slate-700">012 345 678 / 098 765 432</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">អ៊ីមែល</p>
+                            <p class="font-bold text-slate-700">support@schoolsystem.edu</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-8 rounded-3xl shadow-sm text-white relative overflow-hidden">
+                <i class="fas fa-bolt absolute right-[-20px] bottom-[-20px] text-8xl text-white/5"></i>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 relative z-10">ជំនួយរហ័ស</h3>
+                <ul class="space-y-3 text-sm font-medium relative z-10">
+                    <li><a href="#" class="hover:text-blue-400 transition-colors flex items-center gap-2"><i class="fas fa-angle-right text-blue-500"></i> របៀបផ្លាស់ប្តូរលេខសម្ងាត់</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors flex items-center gap-2"><i class="fas fa-angle-right text-blue-500"></i> របៀបប្រើប្រាស់ Chatbot</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="w-full space-y-8"> 
+
+    <div x-show="activeTab === 'system_overview'" x-cloak>
+        {% include 'admin/SystemOverview.html' %}
+    </div>
+
+    <div x-show="activeTab === 'admin_users'" x-cloak>
+        {% include 'admin/ManageUsers.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_students'" x-cloak>
+        {% include 'admin/Managestudent.html' %}
+    </div>
+    <div x-show="activeTab === 'profile'" x-cloak class="w-full">
+        {% include 'admin/Profile.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_department'" x-cloak class="w-full">
+        {% include 'admin/ManageDepartments.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_subject'" x-cloak class="w-full">
+        {% include 'admin/Managesubject.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_class'" x-cloak class="w-full">
+        {% include 'admin/Manageclass.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_attendance'" x-cloak class="w-full">
+        {% include 'admin/ManageAttendance.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_reports'" x-cloak class="w-full">
+        {% include 'admin/admin_reports.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_schedule'" x-cloak class="w-full">
+        {% include 'admin/Manageschedule.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_teacher'" x-cloak class="w-full">
+        {% include 'admin/ManageTeacher.html' %}
+    </div>
+</div>
+{% endblock %}

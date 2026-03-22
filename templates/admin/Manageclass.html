@@ -1,0 +1,124 @@
+<div x-show="activeTab === 'admin_class'" x-cloak class="space-y-6 font-khmer">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
+                <i class="fas fa-school"></i>
+            </div>
+            គ្រប់គ្រងថ្នាក់រៀន
+        </h2>
+        
+        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <div class="relative w-full sm:w-64">
+                <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
+                <input type="text" x-model="searchQuery" placeholder="ស្វែងរកឈ្មោះថ្នាក់..."
+                       class="w-full pl-9 pr-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all shadow-sm">
+            </div>
+
+            <select x-model="classOrderBy" title="តម្រៀបតាម" aria-label="តម្រៀបតាម" class="bg-white text-slate-700 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-sm">
+                <option value="class_name">តម្រៀបតាមឈ្មោះថ្នាក់</option>
+                <option value="department_name">តម្រៀបតាមដេប៉ាតឺម៉ង់</option>
+                <option value="student_count">តម្រៀបតាមចំនួនសិស្ស</option>
+                <option value="academic_year">តម្រៀបតាមឆ្នាំសិក្សា</option>
+            </select>
+            <select x-model="classFilter.year_id" title="ឆ្នាំសិក្សា" aria-label="ឆ្នាំសិក្សា" class="bg-white text-slate-700 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-sm">
+                <option value="">ទាំងអស់ឆ្នាំសិក្សា</option>
+                <template x-for="year in academic_years" :key="year.id">
+                    <option :value="year.id" x-text="year.year_name"></option>
+                </template>
+            </select>
+            <select x-model="classFilter.building_id" title="អាគារ" aria-label="អាគារ" class="bg-white text-slate-700 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-sm">
+                <option value="">ទាំងអស់អាគារ</option>
+                <template x-for="building in buildings" :key="building.id">
+                    <option :value="building.id" x-text="building.building_name"></option>
+                </template>
+            </select>
+
+            <button type="button" @click="toggleClassSortDirection()" title="ប្តូរទិសតម្រៀប" aria-label="ប្តូរទិសតម្រៀប" class="bg-white text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm text-sm font-semibold">
+                <i :class="classOrderDir === 'asc' ? 'fas fa-sort-amount-up-alt' : 'fas fa-sort-amount-down-alt'"></i>
+                <span x-text="classOrderDir === 'asc' ? 'ASC' : 'DESC'"></span>
+            </button>
+
+            <button type="button" @click="openAddClassModal()" class="bg-teal-600 text-white px-5 py-2.5 rounded-xl hover:bg-teal-700 transition-all flex items-center justify-center gap-2 shadow-sm font-bold text-sm w-full sm:w-auto">
+                <i class="fas fa-plus"></i> បន្ថែមថ្នាក់រៀន
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse min-w-[1000px]">
+            <thead class="bg-slate-50 border-b border-slate-100">
+                <tr class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                    <th class="p-4 w-1/6">ឈ្មោះថ្នាក់រៀន</th>
+                    <th class="p-4 w-1/6">ដេប៉ាតឺម៉ង់</th>
+                    <th class="p-4 w-32">វេនសិក្សា</th>
+                    <th class="p-4 w-24 text-center">ចំនួនសិស្ស</th>
+                    <th class="p-4 w-28">ឆ្នាំសិក្សា</th>
+                    <th class="p-4 w-32">បន្ទប់ (Room)</th>
+                    <th class="p-4 w-32 text-right">អាគារ (Building)</th>
+                    <th class="p-4 w-24 text-center">សកម្មភាព</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm">
+                <template x-for="cls in sortedFilteredClasses" :key="cls.id">
+                    <tr class="border-b border-slate-50 hover:bg-teal-50/30 transition-colors duration-200">
+
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800" x-text="cls.class_name"></div>
+                        </td>
+
+                        <td class="p-4 text-slate-600 font-medium" x-text="cls.department_name || 'N/A'"></td>
+
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 bg-teal-50 text-teal-700 rounded-lg text-[11px] font-bold border border-teal-100"
+                                  x-text="cls.session_type === 'M' ? 'វេនព្រឹក' : (cls.session_type === 'A' ? 'វេនរសៀល' : (cls.session_type === 'E' ? 'វេនយប់' : 'សៅរ៍-អាទិត្យ'))">
+                            </span>
+                        </td>
+
+                        <td class="p-4 text-center text-slate-600 font-bold">
+                            <span class="bg-slate-100 px-2 py-0.5 rounded-md" x-text="cls.student_count ?? 0"></span>
+                        </td>
+
+                        <td class="p-4 text-slate-600 font-medium" x-text="cls.year_name || cls.academic_year || 'N/A'"></td>
+
+                        <td class="p-4">
+                            <span class="flex items-center gap-2 text-slate-600 font-medium">
+                                <i class="fas fa-door-open text-slate-400"></i>
+                                <span x-text="cls.room_number || cls.room_name || 'N/A'"></span>
+                            </span>
+                        </td>
+
+                        <td class="p-4 text-right">
+                            <span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-[11px] font-bold border border-indigo-100"
+                                  x-text="cls.building_name || 'N/A'"></span>
+                        </td>
+
+                        <td class="p-4 text-center">
+                            <div class="flex justify-center gap-2">
+                                <button @click="openEditClassModal(cls)" class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors" title="កែប្រែ">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button @click="deleteClass(cls.id)" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="លុបចោល">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+
+                <tr x-show="sortedFilteredClasses.length === 0" x-cloak>
+                    <td colspan="8" class="p-12 text-center text-slate-400 italic">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center">
+                                <i class="fas fa-school text-2xl text-slate-300"></i>
+                            </div>
+                            <span>មិនមានទិន្នន័យថ្នាក់រៀនដែលត្រូវគ្នានឹងការស្វែងរកឡើយ...</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'admin/Edit_class.html' %}
+    {% include 'admin/add_class.html' %}
+</div>

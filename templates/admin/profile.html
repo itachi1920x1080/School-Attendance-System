@@ -1,0 +1,113 @@
+<div class="flex flex-col gap-8 w-full font-khmer pb-10">
+    
+    {% if profile %}
+    
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+        <div class="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-tr from-blue-600 to-violet-600 flex items-center justify-center text-white text-4xl font-black shadow-xl ring-4 ring-white">
+                {{ profile.name[0] | upper }}
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight" x-text="profileForm.name ? profileForm.name : '{{ profile.name }}'">{{ profile.name }}</h1>
+                <p class="text-slate-500 font-medium flex items-center justify-center md:justify-start gap-2 mt-1">
+                    <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold uppercase">{{ profile.role }}</span>
+                    <span>•</span>
+                    <span class="text-sm">{{ profile.department if profile.department else 'មិនទាន់មានដេប៉ាតឺម៉ង់' }}</span>
+                </p>
+            </div>
+        </div>
+        
+        <button type="button"
+                @click="if (editingProfile) { cancelEditProfile(); } else { editingProfile = true; fetchProfile(); }"
+                aria-label="កែប្រែប្រវត្តិរូប"
+                class="px-6 py-3 rounded-2xl font-bold text-sm transition-all flex items-center gap-2"
+                :class="editingProfile ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-200'">
+            <i class="fas" :class="editingProfile ? 'fa-times' : 'fa-user-edit'"></i>
+            <span x-text="editingProfile ? 'បោះបង់' : 'កែប្រែប្រវត្តិរូប'"></span>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-2 space-y-8">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-600"></i> 
+                    <span x-text="editingProfile ? 'កែប្រែព័ត៌មានផ្ទាល់ខ្លួន' : 'ព័ត៌មានផ្ទាល់ខ្លួន'"></span>
+                </h3>
+                
+                <div x-show="!editingProfile" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ឈ្មោះ</p>
+                        <p class="font-bold text-slate-700" x-text="profileForm.name ? profileForm.name : '{{ profile.name }}'">{{ profile.name }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">អ៊ីមែល</p>
+                        <p class="font-bold text-slate-700" x-text="profileForm.email ? profileForm.email : '{{ profile.email }}'">{{ profile.email }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">លេខសម្គាល់ (ID)</p>
+                        <p class="font-bold text-slate-700">{{ profile.id_number if profile.id_number else 'N/A' }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">លេខទូរសព្ទ</p>
+                        <p class="font-bold text-slate-700" x-text="profileForm.phone ? profileForm.phone : '{{ profile.phone if profile.phone else 'មិនទាន់មាន' }}'">{{ profile.phone if profile.phone else 'មិនទាន់មាន' }}</p>
+                    </div>
+                    <div class="space-y-1 md:col-span-2">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">អាសយដ្ឋាន</p>
+                        <p class="font-bold text-slate-700" x-text="profileForm.address ? profileForm.address : '{{ profile.address if profile.address else 'មិនទាន់មានព័ត៌មាន' }}'">{{ profile.address if profile.address else 'មិនទាន់មានព័ត៌មាន' }}</p>
+                    </div>
+                </div>
+
+                <div x-show="editingProfile" x-cloak class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase">ឈ្មោះពេញ <span class="text-rose-500">*</span></label>
+                            <input type="text" x-model="profileForm.name" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        </div>
+                        
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase">អ៊ីមែល <span class="text-rose-500">*</span></label>
+                            <input type="email" x-model="profileForm.email" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase">លេខទូរសព្ទ</label>
+                            <input type="text" x-model="profileForm.phone" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        </div>
+
+                        <div class="space-y-1.5 md:col-span-2">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase">អាសយដ្ឋាន</label>
+                            <textarea x-model="profileForm.address" rows="3" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button @click="saveProfile()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all flex items-center gap-2">
+                            <i class="fas fa-save"></i> រក្សាទុកការកែប្រែ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 text-center">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">ស្ថានភាពគណនី</h3>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm {{ 'bg-green-100 text-green-700' if profile.status == 'Active' else 'bg-rose-100 text-rose-700' }}">
+                    <i class="fas fa-circle text-[8px]"></i>
+                    {{ profile.status }}
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    {% else %}
+    <div class="bg-white p-12 rounded-3xl shadow-sm border border-slate-100 text-center">
+        <i class="fas fa-user-slash text-4xl text-slate-200 mb-4"></i>
+        <p class="text-slate-500 font-khmer">មិនអាចរកឃើញព័ត៌មានប្រវត្តិរូបរបស់អ្នកឡើយ។</p>
+    </div>
+    {% endif %}
+
+</div>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School System Dashboard</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Siemreap&display=swap');
+        body { font-family: 'Siemreap', sans-serif; }
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+
+<body class="bg-[#f0f2f5] h-screen overflow-hidden flex text-slate-700" 
+      x-data="unifiedDashboard('{{ session.role | lower }}', {{ users | default([]) | tojson | forceescape }})">
+    
+    <aside class="w-64 bg-white flex flex-col h-full shadow-sm z-20 flex-shrink-0 transition-colors duration-300 border-r border-slate-100">
+        <div class="h-20 flex items-center px-8 border-b border-slate-50">
+            <div class="w-8 h-8 rounded-lg mr-3 flex items-center justify-center text-white font-bold transition-colors" :class="theme.bg">S</div>
+            <h1 class="text-md font-bold text-slate-800 tracking-wide">SCHOOL SYSTEM</h1>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-2 py-6 overflow-y-auto font-khmer">
+            
+            <template x-if="role === 'admin'">
+                <div class="space-y-1">
+                    <a href="#" @click.prevent="switchTab('system_overview')" 
+                       :class="activeTab === 'system_overview' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-th-large w-5 text-center"></i>
+                        <span class="font-medium text-sm">ទំព័រដើម (Overview)</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_users')" 
+                       :class="activeTab === 'admin_users' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-users-cog w-5 text-center"></i>
+                        <span class="font-medium text-sm">គ្រប់គ្រងអ្នកប្រើប្រាស់</span>
+                    </a>
+                     <a href="#" @click.prevent="switchTab('admin_students')" 
+                       :class="activeTab === 'admin_students' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-user-graduate w-5 text-center"></i>
+                        <span class="font-medium text-sm">បញ្ជីសិស្ស</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_teacher')" 
+                       :class="activeTab === 'admin_teacher' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-chalkboard-teacher w-5 text-center"></i>
+                        <span class="font-medium text-sm">បញ្ជីគ្រូបង្រៀន</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_department')" 
+                       :class="activeTab === 'admin_department' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-university w-5 text-center"></i>
+                        <span class="font-medium text-sm">មហាវិទ្យាល័យ / ជំនាញ</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_subject')" 
+                       :class="activeTab === 'admin_subject' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-book w-5 text-center"></i>
+                        <span class="font-medium text-sm">គ្រប់គ្រងមុខវិជ្ជា</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_class')" 
+                       :class="activeTab === 'admin_class' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-chalkboard w-5 text-center"></i>
+                        <span class="font-medium text-sm">គ្រប់គ្រងថ្នាក់រៀន</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_schedule')" 
+                       :class="activeTab === 'admin_schedule' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-calendar-alt w-5 text-center"></i>
+                        <span class="font-medium text-sm">កាលវិភាគសិក្សា</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_attendance')" 
+                       :class="activeTab === 'admin_attendance' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-user-check w-5 text-center"></i>
+                        <span class="font-medium text-sm">របាយការណ៍វត្តមាន</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('admin_reports')" 
+                       :class="activeTab === 'admin_reports' ? theme.activeClass : theme.inactiveClass"
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-chart-pie w-5 text-center"></i>
+                        <span class="font-medium text-sm">ទាញយកទិន្នន័យ (Export)</span>
+                    </a>
+                </div>
+            </template>
+
+            <template x-if="role === 'teacher'">
+                <div class="space-y-1">
+                    <a href="#" @click.prevent="switchTab('statistics')" 
+                       :class="activeTab === 'statistics' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-chart-line w-5 text-center"></i>
+                        <span class="font-medium text-sm">ទំព័រដើម</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('teacher_schedule')" 
+                       :class="activeTab === 'teacher_schedule' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-calendar-week w-5 text-center"></i>
+                        <span class="font-medium text-sm">កាលវិភាគបង្រៀន</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('attendance')" 
+                       :class="activeTab === 'attendance' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-clipboard-list w-5 text-center"></i>
+                        <span class="font-medium text-sm">កត់វត្តមានសិស្ស</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('teacher_students')" 
+                       :class="activeTab === 'teacher_students' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-users w-5 text-center"></i>
+                        <span class="font-medium text-sm">បញ្ជីសិស្សក្នុងថ្នាក់</span>
+                    </a>
+                </div>
+            </template>
+
+            <template x-if="role === 'student'">
+                <div class="space-y-1">
+                    <a href="#" @click.prevent="switchTab('student_overview')" 
+                       :class="activeTab === 'student_overview' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-user-graduate w-5 text-center"></i>
+                        <span class="font-medium text-sm">ទំព័រដើមសិស្ស</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('student_schedule')" 
+                       :class="activeTab === 'student_schedule' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-calendar-alt w-5 text-center"></i>
+                        <span class="font-medium text-sm">កាលវិភាគរៀន</span>
+                    </a>
+                    <a href="#" @click.prevent="switchTab('student_attendance')" 
+                       :class="activeTab === 'student_attendance' ? theme.activeClass : theme.inactiveClass" 
+                       class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
+                        <i class="fas fa-chart-pie w-5 text-center"></i>
+                        <span class="font-medium text-sm">វត្តមានរបស់ខ្ញុំ</span>
+                    </a>
+                </div>
+            </template>
+            
+        </nav>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        <header class="h-20 bg-white flex items-center justify-between px-8 z-10 border-b border-slate-50 shadow-sm flex-shrink-0">
+            <div class="relative w-96">
+                <svg class="w-5 h-5 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" placeholder="ស្វែងរកទិន្នន័យ..." class="w-full bg-slate-50 border border-slate-100 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:bg-white transition-colors font-khmer" :class="theme.ring">
+            </div>
+
+            <div class="flex items-center gap-6">
+                {% if session.get('loggedin') %}
+                    <div class="relative" x-data="{ open: false }">
+                        <div @click="open = !open" @click.away="open = false" class="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition-colors">
+                            <div class="text-right hidden md:block">
+                                <p class="text-sm font-semibold text-slate-800">
+                                    {{ session.name }}
+                                </p>
+                                <p class="text-[11px] text-slate-500 uppercase tracking-wide font-bold">
+                                    {{ session.role }}
+                                </p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full border-2 bg-slate-100 flex items-center justify-center font-bold text-slate-600 shadow-sm" :class="theme.border">
+                                {{ session.name[0] | upper if session.name else 'U' }}
+                            </div>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform" :class="{'rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+
+                        <div x-show="open" 
+                             x-transition.opacity 
+                             class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50 font-khmer" x-cloak>
+                            <a href="#" @click.prevent="switchTab('profile'); fetchProfile(); open = false" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                <i class="fas fa-id-card w-5 text-center text-slate-400 mr-2"></i> គណនីរបស់ខ្ញុំ (Profile)
+                            </a>
+                            
+                            {% if session.role == 'admin' %}
+                                <div class="my-2 border-t border-slate-100"></div>
+                                <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Admin Tools</div>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('system_overview'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-chart-line w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>Dashboard</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('admin_users'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-users-cog w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>គ្រប់គ្រងអ្នកប្រើប្រាស់</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="openUserModal('add'); open = false" 
+                                    class="block px-4 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors flex items-center">
+                                    <i class="fas fa-plus w-5 text-center mr-2"></i>
+                                    <span>បន្ថែមអ្នកប្រើប្រាស់</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('admin_department'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-sitemap w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>រចនាសម្ព័ន្ធសាលា</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('statistics'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-chart-bar w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>ស្ថិតិ (Statistics)</span>
+                                </a>
+                            {% endif %}
+
+                            {% if session.role == 'teacher' %}
+                                <div class="my-2 border-t border-slate-100"></div>
+                                <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Teacher Tools</div>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('statistics'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-chart-line w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>Dashboard</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('teacher_schedule'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-chalkboard-teacher w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>Class Information</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('teacher_students'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-users w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>List of Students</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('attendance'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-user-check w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>Take Attendance</span>
+                                </a>
+                            {% endif %}
+
+                            {% if session.role == 'student' %}
+                                <div class="my-2 border-t border-slate-100"></div>
+                                <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Student Tools</div>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('student_overview'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-chalkboard-teacher w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>Class Information</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('student_schedule'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-calendar-alt w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>My Schedule</span>
+                                </a>
+
+                                <a href="#" 
+                                    @click.prevent="switchTab('student_attendance'); open = false" 
+                                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
+                                    <i class="fas fa-user-check w-5 text-center text-slate-400 mr-2"></i>
+                                    <span>Attendance Records</span>
+                                </a>
+
+                                <a href="#" @click.prevent="open = false" class="block px-4 py-2 text-sm text-slate-400 hover:bg-slate-50 transition-colors"><i class="fas fa-file-invoice w-5 text-center mr-2"></i> Assignments (Coming Soon)</a>
+                            {% endif %}
+
+                            <div class="my-2 border-t border-slate-100"></div>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-50 transition-colors">
+                                <i class="fas fa-sign-out-alt w-5 text-center mr-2"></i> ចាកចេញ (Logout)
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Login</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="flex-1 p-8 overflow-y-auto relative w-full">
+            {% block content %}
+            {% endblock %}
+        </main>
+        
+    </div>
+
+    <button type="button" title="Toggle chatbot" aria-label="Toggle chatbot" @click="isChatOpen = !isChatOpen; if(isChatOpen && typeof scrollToBottom === 'function') scrollToBottom()" class="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-[90] cursor-pointer" :class="theme.bg">
+        <svg x-show="!isChatOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        <svg x-show="isChatOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+
+    <div x-show="isChatOpen" x-transition.opacity class="fixed bottom-24 right-6 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden z-[90] h-[450px]" x-cloak>
+        <div class="p-4 text-white flex items-center gap-3 shadow-sm" :class="theme.bg">
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <i class="fas fa-robot text-lg"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-sm leading-tight">UniBot Support</h3>
+                <p class="text-[10px] text-white/80 flex items-center gap-1 mt-0.5">
+                    <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> កំពុងរង់ចាំឆ្លើយតប
+                </p>
+            </div>
+        </div>
+        
+        <div id="chat-container" class="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col gap-4 text-sm font-khmer">
+            <template x-for="(msg, index) in chatHistory" :key="index">
+                <div class="flex" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
+                    <div class="max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm" :class="msg.sender === 'user' ? [theme.bg, 'text-white rounded-br-none'] : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none'">
+                        <template x-if="!msg.isTyping"><span x-text="msg.text" class="leading-relaxed"></span></template>
+                        <template x-if="msg.isTyping">
+                            <div class="flex space-x-1.5 items-center h-5 px-1">
+                                <div class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
+                                <div class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
+                                <div class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+        
+        <form @submit.prevent="sendMessage" class="p-3 bg-white border-t border-slate-100 flex gap-2 font-khmer">
+            <input type="text" x-model="chatInput" placeholder="សួរសំណួររបស់អ្នកនៅទីនេះ..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm outline-none transition-all focus:bg-white focus:ring-2" :class="theme.ring">
+            <button type="submit" class="w-10 h-10 rounded-xl text-white flex items-center justify-center transition-all shadow-sm disabled:opacity-50" :class="theme.bg" :disabled="!chatInput.trim()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
+    <div x-show="toast.visible" x-transition.opacity
+         class="fixed top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 px-6 py-4 rounded-xl shadow-lg z-[100] text-white font-medium min-w-[300px] font-khmer" 
+         :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'" x-cloak>
+        <i x-show="toast.type === 'success'" class="fas fa-check-circle text-xl"></i>
+        <i x-show="toast.type === 'error'" class="fas fa-exclamation-circle text-xl"></i>
+        <span x-text="toast.message" class="flex-1"></span>
+        <button @click="toast.visible = false" class="opacity-70 hover:opacity-100 transition-opacity"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/style_js.js') }}?v=20260312-1525"></script>
+
+</body>
+</html>

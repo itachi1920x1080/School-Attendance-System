@@ -1,0 +1,159 @@
+<div class="flex flex-col gap-6 w-full font-khmer pb-10"
+     x-data="{ 
+         dashboard: {
+             users: { student: 0, teacher: 0, admin: 0 },
+             today: { present: 0, absent: 0, late: 0 },
+             top_students: []
+         },
+         chartLoaded: false 
+     }"
+     x-init="
+         fetch('/statistics')
+         .then(res => res.json())
+         .then(data => {
+             if(data.status === 'success') {
+                 // ផ្ទុកទិន្នន័យចូលទៅក្នុង State របស់ Alpine.js
+                 dashboard = data.data;
+                 
+                 // គូរក្រាហ្វិកដោយប្រើប្រាស់ទិន្នន័យពី Database
+                 setTimeout(() => {
+                     // --- Line Chart (Total Attendance Report) ---
+                     new Chart(document.getElementById('lineChart').getContext('2d'), {
+                         type: 'line',
+                         data: {
+                             labels: dashboard.attendance_trend.labels, // 🌟 ទិន្នន័យពី DB
+                             datasets: [{
+                                 label: 'វត្តមានសិស្ស',
+                                 data: dashboard.attendance_trend.data, // 🌟 ទិន្នន័យពី DB
+                                 borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                 borderWidth: 2, tension: 0.4, fill: true,
+                                 pointBackgroundColor: '#fff', pointBorderColor: '#22c55e', pointBorderWidth: 2, pointRadius: 4
+                             }]
+                         },
+                         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
+                     });
+
+                     // --- Bar Chart (Students by Class) ---
+                     new Chart(document.getElementById('barChart').getContext('2d'), {
+                         type: 'bar',
+                         data: {
+                             labels: dashboard.class_stats.labels, // 🌟 ទិន្នន័យថ្នាក់រៀនពី DB
+                             datasets: [{
+                                 data: dashboard.class_stats.data, // 🌟 ចំនួនសិស្សតាមថ្នាក់ពី DB
+                                 backgroundColor: '#e2e8f0', hoverBackgroundColor: '#22c55e', borderRadius: 4
+                             }]
+                         },
+                         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
+                     });
+
+                     // --- Doughnut Chart (Students by Gender / Role) ---
+                     new Chart(document.getElementById('doughnutChart').getContext('2d'), {
+                         type: 'doughnut',
+                         data: {
+                             labels: ['សិស្ស', 'គ្រូ និង Admin'],
+                             datasets: [{
+                                 data: [dashboard.users.student, (dashboard.users.teacher + dashboard.users.admin)], // 🌟 ភាគរយពី DB
+                                 backgroundColor: ['#22c55e', '#1e293b'], borderWidth: 0,
+                             }]
+                         },
+                         options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } } }
+                     });
+
+                     // --- Radar Chart (Weekly Absent) ---
+                     new Chart(document.getElementById('radarChart').getContext('2d'), {
+                         type: 'radar',
+                         data: {
+                             labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                             datasets: [{
+                                 label: 'អវត្តមាន',
+                                 data: dashboard.weekly_absent, // 🌟 ទិន្នន័យអវត្តមានពី DB
+                                 backgroundColor: 'rgba(34, 197, 94, 0.2)', borderColor: '#22c55e', pointBackgroundColor: '#22c55e',
+                             }]
+                         },
+                         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { r: { ticks: { display: false } } } }
+                     });
+
+                     chartLoaded = true;
+                 }, 100);
+             }
+         })
+     ">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Students</p>
+                <h3 class="text-3xl font-black text-slate-800" x-text="dashboard.users.student">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl"><i class="fas fa-user-graduate"></i></div>
+        </div>
+
+        <div class="bg-[#22c55e] p-5 rounded-2xl shadow-lg shadow-green-200 flex items-center justify-between text-white">
+            <div>
+                <p class="text-[10px] font-bold text-green-100 uppercase tracking-widest mb-1">Present Today</p>
+                <h3 class="text-3xl font-black" x-text="dashboard.today.present">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-xl backdrop-blur-sm"><i class="fas fa-sign-in-alt"></i></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Absent Today</p>
+                <h3 class="text-3xl font-black text-slate-800" x-text="dashboard.today.absent">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl"><i class="fas fa-exclamation-circle"></i></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Late Students</p>
+                <h3 class="text-3xl font-black text-slate-800" x-text="dashboard.today.late">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-xl"><i class="fas fa-clock"></i></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 font-sans">Total Attendance Report</h3>
+            <div class="relative w-full h-[250px]"><canvas id="lineChart"></canvas></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 font-sans">Students by Class (DB)</h3>
+            <div class="relative w-full h-[250px]"><canvas id="barChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 font-sans">Students/Staff Ratio</h3>
+            <div class="relative w-full h-[200px]"><canvas id="doughnutChart"></canvas></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-800 mb-4 font-sans">Top 4 Attendant</h3>
+            <div class="space-y-4">
+                <template x-for="student in dashboard.top_students">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <img :src="'https://ui-avatars.com/api/?name=' + student.name.replace(' ', '+') + '&background=f1f5f9&color=1e293b'" class="w-8 h-8 rounded-full">
+                            <span class="text-sm font-medium text-slate-700" x-text="student.name"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400" x-text="student.percentage"></span>
+                            <span class="text-sm font-bold text-slate-800" x-text="student.days"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="text-sm font-bold text-slate-800 mb-6 font-sans">Weekly Absent</h3>
+            <div class="relative w-full h-[200px] flex justify-center"><canvas id="radarChart"></canvas></div>
+        </div>
+    </div>
+
+</div>
