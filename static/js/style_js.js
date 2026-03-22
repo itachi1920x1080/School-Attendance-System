@@ -85,6 +85,10 @@ document.addEventListener('alpine:init', () => {
         searchQuery: '',
         collegeFilter: '',
         departmentFilter: '',
+        classFilter: {
+            year_id: '',
+            building_id: ''
+        },
         classOrderBy: 'class_name',
         classOrderDir: 'asc',
 
@@ -197,10 +201,14 @@ document.addEventListener('alpine:init', () => {
                 const payload = await res.json();
                 if (payload?.status !== 'success') return;
 
-                const rows = Array.isArray(payload.data) ? payload.data : [];
+                const rows = Array.isArray(payload.data)
+                    ? payload.data
+                    : (Array.isArray(payload.subjects)
+                        ? payload.subjects
+                        : (Array.isArray(payload.courses) ? payload.courses : []));
                 this.subjects = rows.map(s => ({
                     id: s.id,
-                    subject_name: s.subject_name || s.name || '',
+                    subject_name: s.subject_name || s.course_name || s.name || '',
                     department_id: s.department_id ?? '',
                     year_id: s.year_id ?? '',
                     semester: s.semester ?? ''
@@ -947,7 +955,13 @@ document.addEventListener('alpine:init', () => {
                 const result = await response.json();
 
                 if (response.ok && result.status === 'success') {
-                    this.subjects = Array.isArray(result.subjects) ? result.subjects : [];
+                    const rows = Array.isArray(result.subjects)
+                        ? result.subjects
+                        : (Array.isArray(result.courses) ? result.courses : []);
+                    this.subjects = rows.map(s => ({
+                        ...s,
+                        subject_name: s.subject_name || s.course_name || s.name || ''
+                    }));
                 } else {
                     this.subjects = [];
                     this.showToast(result.message || 'មិនអាចទាញយកបញ្ជីមុខវិជ្ជាបានទេ', 'error');

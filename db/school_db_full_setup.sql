@@ -118,6 +118,17 @@ CREATE TABLE subjects (
     FOREIGN KEY (year_id) REFERENCES academic_year(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- Compatibility view for modules/scripts that use "courses" naming.
+CREATE OR REPLACE VIEW courses AS
+SELECT
+    id,
+    subject_name AS course_name,
+    department_id,
+    year_id,
+    semester,
+    credits
+FROM subjects;
+
 CREATE TABLE rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     building_id INT NOT NULL,

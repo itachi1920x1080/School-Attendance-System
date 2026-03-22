@@ -1375,6 +1375,7 @@ def get_subjects_view():
             sql = """SELECT
                 s.id,
                 s.subject_name,
+                s.subject_name AS course_name,
                 s.credits,
                 s.semester,
                 s.department_id,
@@ -1389,7 +1390,7 @@ def get_subjects_view():
             cursor.execute(sql)
             subjects = cursor.fetchall()
             
-            return jsonify({'status': 'success', 'subjects': subjects})
+            return jsonify({'status': 'success', 'subjects': subjects, 'courses': subjects})
         except Exception as e:
             return jsonify({'status': 'error', 'message': str(e)}), 500
         finally:
@@ -1403,7 +1404,7 @@ def add_subject():
     data = request.get_json()
     
     # ទី១៖ ប្តូរពី 'name' មក 'subject_name' ឱ្យត្រូវនឹង JS JSON Payload
-    name = data.get('subject_name') 
+    name = data.get('subject_name') or data.get('course_name') or data.get('name')
     credits = data.get('credits')
     semester = data.get('semester')
     department_id = data.get('department_id')
@@ -1468,7 +1469,7 @@ def update_subject():
     # ចាប់យក ID ដើម្បីដឹងថាត្រូវ Update ទិន្នន័យមួយណា
     subject_id = data.get('id')
     # ចាប់យកឈ្មោះតាមរយៈ Key 'name' ឱ្យស៊ីគ្នានឹង JS payload ដែលយើងបានសរសេរ
-    name = data.get('name') 
+    name = data.get('name') or data.get('subject_name') or data.get('course_name')
     credits = data.get('credits')
     semester = data.get('semester')
     department_id = data.get('department_id')
@@ -1506,6 +1507,29 @@ def update_subject():
             conn.close()
             
     return jsonify({'status': 'error', 'message': 'មិនអាចភ្ជាប់ទៅកាន់ Database បានទេ'}), 500
+
+
+# ==========================================
+# Courses aliases (backward/forward compatibility)
+# ==========================================
+@app.route('/manageCourses', methods=['GET'])
+def get_courses_view():
+    return get_subjects_view()
+
+
+@app.route('/add_course', methods=['POST'])
+def add_course():
+    return add_subject()
+
+
+@app.route('/update_course', methods=['POST'])
+def update_course():
+    return update_subject()
+
+
+@app.route('/delete_course/<int:id>', methods=['POST'])
+def delete_course(id):
+    return delete_subject(id)
 
 
 
