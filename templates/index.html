@@ -2,6 +2,14 @@
 {% block content %}
 <div class="w-full space-y-8"> 
 
+    <div x-show="role === 'teacher'" x-cloak class="w-full">
+        {% include 'Teacher/teacher_dashboard.html' %}
+    </div>
+
+    <div x-show="role === 'student'" x-cloak class="w-full">
+        {% include 'student/student_overview.html' %}
+    </div>
+
     <div x-show="activeTab === 'system_overview'" x-cloak>
         {% include 'admin/SystemOverview.html' %}
     </div>
@@ -35,6 +43,9 @@
     </div>
     <div x-show="activeTab === 'admin_teacher'" x-cloak class="w-full">
         {% include 'admin/ManageTeacher.html' %}
+    </div>
+    <div x-show="activeTab === 'admin_student_dashboard'" x-cloak class="w-full">
+        {% include 'student/student_overview.html' %}
     </div>
 </div>
 {% endblock %}

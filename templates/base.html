@@ -100,8 +100,8 @@
 
             <template x-if="role === 'teacher'">
                 <div class="space-y-1">
-                    <a href="#" @click.prevent="switchTab('statistics')" 
-                       :class="activeTab === 'statistics' ? theme.activeClass : theme.inactiveClass" 
+                    <a href="#" @click.prevent="switchTab('teacher_overview')" 
+                       :class="activeTab === 'teacher_overview' ? theme.activeClass : theme.inactiveClass" 
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
                         <i class="fas fa-chart-line w-5 text-center"></i>
                         <span class="font-medium text-sm">ទំព័រដើម</span>
@@ -112,8 +112,8 @@
                         <i class="fas fa-calendar-week w-5 text-center"></i>
                         <span class="font-medium text-sm">កាលវិភាគបង្រៀន</span>
                     </a>
-                    <a href="#" @click.prevent="switchTab('attendance')" 
-                       :class="activeTab === 'attendance' ? theme.activeClass : theme.inactiveClass" 
+                          <a href="#" @click.prevent="switchTab('teacher_attendance')" 
+                              :class="activeTab === 'teacher_attendance' ? theme.activeClass : theme.inactiveClass" 
                        class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors">
                         <i class="fas fa-clipboard-list w-5 text-center"></i>
                         <span class="font-medium text-sm">កត់វត្តមានសិស្ស</span>
@@ -186,7 +186,7 @@
                                 <i class="fas fa-id-card w-5 text-center text-slate-400 mr-2"></i> គណនីរបស់ខ្ញុំ (Profile)
                             </a>
                             
-                            {% if session.role == 'admin' %}
+                            {% if session.role|lower == 'admin' %}
                                 <div class="my-2 border-t border-slate-100"></div>
                                 <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Admin Tools</div>
 
@@ -226,12 +226,12 @@
                                 </a>
                             {% endif %}
 
-                            {% if session.role == 'teacher' %}
+                            {% if session.role|lower == 'teacher' %}
                                 <div class="my-2 border-t border-slate-100"></div>
                                 <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Teacher Tools</div>
 
                                 <a href="#" 
-                                    @click.prevent="switchTab('statistics'); open = false" 
+                                    @click.prevent="switchTab('teacher_overview'); open = false" 
                                     class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
                                     <i class="fas fa-chart-line w-5 text-center text-slate-400 mr-2"></i>
                                     <span>Dashboard</span>
@@ -252,14 +252,14 @@
                                 </a>
 
                                 <a href="#" 
-                                    @click.prevent="switchTab('attendance'); open = false" 
+                                    @click.prevent="switchTab('teacher_attendance'); open = false" 
                                     class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center">
                                     <i class="fas fa-user-check w-5 text-center text-slate-400 mr-2"></i>
                                     <span>Take Attendance</span>
                                 </a>
                             {% endif %}
 
-                            {% if session.role == 'student' %}
+                            {% if session.role|lower == 'student' %}
                                 <div class="my-2 border-t border-slate-100"></div>
                                 <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Student Tools</div>
 

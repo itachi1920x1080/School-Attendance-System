@@ -1,0 +1,371 @@
+<div x-show="activeTab === 'teacher_overview'" x-cloak class="space-y-6 font-khmer w-full">
+
+	<div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 sm:p-8 text-white shadow-lg shadow-emerald-200 relative overflow-hidden">
+		<div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
+		<div class="absolute bottom-0 right-20 -mb-10 w-32 h-32 bg-teal-300 opacity-20 rounded-full blur-xl"></div>
+
+		<div class="relative z-10">
+			<h2 class="text-2xl sm:text-3xl font-extrabold mb-2">សួស្តី, អ្នកគ្រូ/លោកគ្រូ <span x-text="profileForm.name || ''"></span> 👋</h2>
+			<p class="text-emerald-50 text-sm sm:text-base max-w-xl leading-relaxed">
+				សូមស្វាគមន៍មកកាន់ផ្ទាំងគ្រប់គ្រងសម្រាប់គ្រូបង្រៀន។ លោកអ្នកអាចកត់វត្តមាន មើលកាលវិភាគ និងគ្រប់គ្រងសិស្សក្នុងបន្ទុកបាននៅទីនេះ។
+			</p>
+		</div>
+	</div>
+
+	<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+		<div @click="switchTab('teacher_schedule')" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:border-emerald-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
+			<div class="flex items-center justify-between mb-4">
+				<div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+					<i class="fas fa-chalkboard-teacher"></i>
+				</div>
+				<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">ឆមាសនេះ</span>
+			</div>
+			<h3 class="text-slate-500 text-sm font-semibold mb-1">ថ្នាក់បង្រៀនសរុប</h3>
+			<div class="text-3xl font-extrabold text-slate-800"><span x-text="teacherSummary.total_classes || 0"></span><span class="text-xl text-slate-400"> ថ្នាក់</span></div>
+		</div>
+
+		<div @click="switchTab('teacher_students')" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
+			<div class="flex items-center justify-between mb-4">
+				<div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+					<i class="fas fa-users"></i>
+				</div>
+				<span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">ក្នុងបន្ទុក</span>
+			</div>
+			<h3 class="text-slate-500 text-sm font-semibold mb-1">សិស្សសរុប</h3>
+			<div class="text-3xl font-extrabold text-slate-800"><span x-text="teacherSummary.total_students || 0"></span><span class="text-xl text-slate-400"> នាក់</span></div>
+		</div>
+
+		<div @click="switchTab('teacher_attendance')" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:border-amber-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer group sm:col-span-2 lg:col-span-1">
+			<div class="flex items-center justify-between mb-4">
+				<div class="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+					<i class="fas fa-clipboard-list"></i>
+				</div>
+				<span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100">ត្រូវធ្វើថ្ងៃនេះ</span>
+			</div>
+			<h3 class="text-slate-500 text-sm font-semibold mb-1">កត់វត្តមាន</h3>
+			<div class="text-lg font-bold text-slate-800 line-clamp-1" x-text="teacherSummary.next_class_name || 'គ្មានថ្នាក់'"></div>
+			<div class="text-sm font-medium text-slate-500 mt-1"><i class="fas fa-clock text-amber-400 mr-1.5"></i> <span x-text="teacherSummary.next_class_time || '--:--'"></span></div>
+		</div>
+	</div>
+</div>
+
+<div x-show="activeTab === 'teacher_attendance'" x-cloak class="space-y-6 font-khmer w-full">
+
+	<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+		<div>
+			<h2 class="text-2xl font-bold text-slate-800 flex items-center gap-3 mb-1">
+				<div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200">
+					<i class="fas fa-tasks"></i>
+				</div>
+				កត់វត្តមានសិស្ស
+			</h2>
+			<p class="text-sm text-slate-500">ជ្រើសរើសថ្នាក់ និងកាលបរិច្ឆេទដើម្បីចាប់ផ្តើមកត់វត្តមាន។</p>
+		</div>
+
+		<div class="flex items-center gap-3 w-full lg:w-auto">
+			<select aria-label="ជ្រើសរើសថ្នាក់រៀន" title="ជ្រើសរើសថ្នាក់រៀន" class="w-full lg:w-48 bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer font-bold">
+				<option value="">ជ្រើសរើសថ្នាក់រៀន...</option>
+				<option value="1">M1 - Programming in C++</option>
+				<option value="2">M2 - Data Structures</option>
+			</select>
+			<input type="date" aria-label="ជ្រើសរើសកាលបរិច្ឆេទ" title="ជ្រើសរើសកាលបរិច្ឆេទ" class="w-full lg:w-auto bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm font-medium">
+		</div>
+	</div>
+
+	<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+		<div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+			<h3 class="font-bold text-slate-700 text-sm">បញ្ជីរាយនាមសិស្ស <span class="text-slate-400 font-normal">(ថ្នាក់ M1)</span></h3>
+			<button class="text-sm font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors border border-emerald-200">
+				<i class="fas fa-check-double mr-1"></i> វត្តមានទាំងអស់
+			</button>
+		</div>
+
+		<div class="overflow-x-auto custom-scrollbar">
+			<table class="w-full text-left border-collapse min-w-[800px]">
+				<thead class="bg-white border-b border-slate-100">
+					<tr class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+						<th class="p-4 w-12 text-center">ល.រ</th>
+						<th class="p-4 w-64">ឈ្មោះសិស្ស</th>
+						<th class="p-4 w-32">អត្តលេខ</th>
+						<th class="p-4">កំណត់ស្ថានភាពវត្តមាន</th>
+						<th class="p-4 w-48">មូលហេតុ (បើមាន)</th>
+					</tr>
+				</thead>
+				<tbody class="text-sm divide-y divide-slate-50">
+					<tr class="hover:bg-slate-50/50 transition-colors group">
+						<td class="p-4 text-center font-medium text-slate-500">1</td>
+						<td class="p-4">
+							<div class="flex items-center gap-3">
+								<div class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold border border-slate-200">S</div>
+								<div class="font-bold text-slate-800">Sok Dara</div>
+							</div>
+						</td>
+						<td class="p-4 text-xs font-mono text-slate-500">STU-2026-1001</td>
+						<td class="p-4">
+							<div class="flex items-center gap-2">
+								<label class="cursor-pointer">
+									<input type="radio" name="att_1" class="peer sr-only" checked>
+									<div class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 peer-checked:bg-emerald-500 peer-checked:text-white peer-checked:border-emerald-600 transition-all">
+										វត្តមាន
+									</div>
+								</label>
+								<label class="cursor-pointer">
+									<input type="radio" name="att_1" class="peer sr-only">
+									<div class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-600 transition-all">
+										អវត្តមាន
+									</div>
+								</label>
+								<label class="cursor-pointer">
+									<input type="radio" name="att_1" class="peer sr-only">
+									<div class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-600 transition-all">
+										ច្បាប់/យឺត
+									</div>
+								</label>
+							</div>
+						</td>
+						<td class="p-4">
+							<input type="text" placeholder="បញ្ចូលមូលហេតុ..." class="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-emerald-500 outline-none text-xs py-1 px-2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+						</td>
+					</tr>
+
+					<tr class="hover:bg-slate-50/50 transition-colors group">
+						<td class="p-4 text-center font-medium text-slate-500">2</td>
+						<td class="p-4">
+							<div class="flex items-center gap-3">
+								<div class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold border border-slate-200">C</div>
+								<div class="font-bold text-slate-800">Chan Minea</div>
+							</div>
+						</td>
+						<td class="p-4 text-xs font-mono text-slate-500">STU-2026-1002</td>
+						<td class="p-4">
+							<div class="flex items-center gap-2">
+								<label class="cursor-pointer">
+									<input type="radio" name="att_2" class="peer sr-only">
+									<div class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 peer-checked:bg-emerald-500 peer-checked:text-white peer-checked:border-emerald-600 transition-all">វត្តមាន</div>
+								</label>
+								<label class="cursor-pointer">
+									<input type="radio" name="att_2" class="peer sr-only" checked>
+									<div class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 peer-checked:bg-rose-500 peer-checked:text-white peer-checked:border-rose-600 transition-all">អវត្តមាន</div>
+								</label>
+								<label class="cursor-pointer">
+									<input type="radio" name="att_2" class="peer sr-only">
+									<div class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-600 transition-all">ច្បាប់/យឺត</div>
+								</label>
+							</div>
+						</td>
+						<td class="p-4">
+							<input type="text" placeholder="បញ្ចូលមូលហេតុ..." class="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-emerald-500 outline-none text-xs py-1 px-2 opacity-100 transition-opacity">
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+			<button class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-emerald-200 flex items-center gap-2 hover:-translate-y-0.5">
+				<i class="fas fa-save"></i> បញ្ជូនទិន្នន័យវត្តមាន
+			</button>
+		</div>
+	</div>
+</div>
+
+<div x-show="activeTab === 'teacher_schedule'" x-cloak class="space-y-6 font-khmer w-full">
+
+	<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+		<h2 class="text-2xl font-bold text-slate-800 flex items-center gap-3">
+			<div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200">
+				<i class="fas fa-calendar-alt"></i>
+			</div>
+			កាលវិភាគបង្រៀន
+		</h2>
+		<div class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-emerald-700 shadow-sm">
+			<i class="fas fa-chalkboard text-emerald-500 mr-2"></i> កាលវិភាគផ្ទាល់ខ្លួន
+		</div>
+	</div>
+
+	<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+		<div class="overflow-x-auto custom-scrollbar">
+			<table class="w-full text-left border-collapse min-w-[900px]">
+				<thead class="bg-slate-50 border-b border-slate-100">
+					<tr class="text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">
+						<th class="p-4 border-r border-slate-100 w-28">ម៉ោងសិក្សា</th>
+						<th class="p-4 w-40">ច័ន្ទ (Mon)</th>
+						<th class="p-4 w-40">អង្គារ (Tue)</th>
+						<th class="p-4 w-40">ពុធ (Wed)</th>
+						<th class="p-4 w-40">ព្រហស្បតិ៍ (Thu)</th>
+						<th class="p-4 w-40">សុក្រ (Fri)</th>
+					</tr>
+				</thead>
+				<tbody class="text-sm divide-y divide-slate-100">
+
+					<template x-for="row in formattedTeacherSchedule" :key="row.rawStart">
+						<tr>
+							<td class="p-4 border-r border-slate-100 text-center font-bold text-slate-600 bg-slate-50/30">
+								<span class="block text-emerald-600" x-text="row.start"></span>
+								<span class="text-slate-300 text-xs">|</span>
+								<span class="block" x-text="row.end"></span>
+							</td>
+
+							<template x-for="day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']">
+								<td class="p-3">
+
+									<template x-if="row.days[day]">
+										<div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 h-full hover:shadow-md transition-shadow">
+											<div class="font-bold text-emerald-800 text-[13px] mb-1.5 leading-tight" x-text="row.days[day].subject_name"></div>
+											<div class="text-[11px] text-emerald-600 mb-2 font-medium">
+												<i class="fas fa-users mr-1"></i> <span x-text="'ថ្នាក់ ' + (row.days[day].class_name || 'N/A')"></span>
+											</div>
+											<div class="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 border border-emerald-200 inline-block px-2 py-0.5 rounded uppercase tracking-wider">
+												<i class="fas fa-map-marker-alt mr-1"></i> <span x-text="'បន្ទប់ ' + (row.days[day].room_number || row.days[day].room_name || 'N/A')"></span>
+											</div>
+										</div>
+									</template>
+
+									<template x-if="!row.days[day]">
+										<div class="h-full min-h-[90px] rounded-xl border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-slate-400 gap-1">
+											<span class="text-xs font-medium text-slate-300">ទទេ</span>
+										</div>
+									</template>
+
+								</td>
+							</template>
+						</tr>
+					</template>
+
+					<tr x-show="formattedTeacherSchedule.length === 0" x-cloak>
+						<td colspan="6" class="p-12 text-center text-slate-400">
+							<div class="flex flex-col items-center justify-center gap-2">
+								<i class="fas fa-calendar-times text-3xl text-slate-200 mb-2"></i>
+								<span>មិនមានកាលវិភាគបង្រៀននៅក្នុងប្រព័ន្ធទេ</span>
+							</div>
+						</td>
+					</tr>
+
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div x-show="activeTab === 'teacher_students'" x-cloak class="space-y-6 font-khmer w-full">
+
+	<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+		<div>
+			<h2 class="text-2xl font-bold text-slate-800 flex items-center gap-3 mb-1">
+				<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm border border-blue-200">
+					<i class="fas fa-users"></i>
+				</div>
+				បញ្ជីសិស្សក្នុងថ្នាក់
+			</h2>
+			<p class="text-sm text-slate-500">ជ្រើសរើសថ្នាក់រៀនរបស់អ្នក ដើម្បីមើលបញ្ជីរាយនាមសិស្សទាំងអស់។</p>
+		</div>
+
+		<div class="flex items-center w-full lg:w-auto">
+			<select x-model="teacherListForm.class_id" @change="fetchStudentsForList()" aria-label="ជ្រើសរើសថ្នាក់រៀន" title="ជ្រើសរើសថ្នាក់រៀន" class="w-full lg:w-64 bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer font-bold">
+				<option value="">ជ្រើសរើសថ្នាក់រៀន...</option>
+				<template x-for="cls in teacherClasses" :key="'list-'+cls.class_id">
+					<option :value="cls.class_id" x-text="`${cls.class_name} - ${cls.subject_name}`"></option>
+				</template>
+			</select>
+		</div>
+	</div>
+
+	<div x-show="teacherListForm.class_id && studentsInList.length > 0" x-transition class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+		<div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-4">
+			<div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+				<i class="fas fa-users"></i>
+			</div>
+			<div>
+				<div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">សិស្សសរុប</div>
+				<div class="text-2xl font-extrabold text-slate-800" x-text="studentsInList.length"></div>
+			</div>
+		</div>
+		<div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-4">
+			<div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+				<i class="fas fa-mars"></i>
+			</div>
+			<div>
+				<div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">សិស្សប្រុស</div>
+				<div class="text-2xl font-extrabold text-slate-800" x-text="studentsInList.filter(s => s.gender === 'Male').length"></div>
+			</div>
+		</div>
+		<div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-4">
+			<div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0">
+				<i class="fas fa-venus"></i>
+			</div>
+			<div>
+				<div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">សិស្សស្រី</div>
+				<div class="text-2xl font-extrabold text-slate-800" x-text="studentsInList.filter(s => s.gender === 'Female').length"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+		<div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+			<h3 class="font-bold text-slate-700 text-sm">បញ្ជីឈ្មោះសិស្ស <span class="text-slate-400 font-normal" x-text="teacherListForm.class_id ? '' : '(សូមជ្រើសរើសថ្នាក់ជាមុន)'"></span></h3>
+
+			<div class="relative w-48 sm:w-64" x-show="studentsInList.length > 0">
+				<i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+				<input type="text" x-model="studentSearchQuery" placeholder="ស្វែងរកឈ្មោះ..." class="w-full pl-9 pr-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
+			</div>
+		</div>
+
+		<div class="overflow-x-auto custom-scrollbar">
+			<table class="w-full text-left border-collapse min-w-[900px]">
+				<thead class="bg-white border-b border-slate-100">
+					<tr class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+						<th class="p-4 w-12 text-center">ល.រ</th>
+						<th class="p-4 w-64">ឈ្មោះសិស្ស</th>
+						<th class="p-4 w-32">អត្តលេខ</th>
+						<th class="p-4 w-24 text-center">ភេទ</th>
+						<th class="p-4 w-32">ថ្ងៃខែឆ្នាំកំណើត</th>
+						<th class="p-4 w-32">លេខទូរសព្ទ</th>
+						<th class="p-4">អ៊ីមែល</th>
+					</tr>
+				</thead>
+				<tbody class="text-sm divide-y divide-slate-50">
+
+					<template x-for="(student, index) in filteredStudentsInList" :key="'list-'+student.id">
+						<tr class="hover:bg-slate-50/50 transition-colors">
+							<td class="p-4 text-center font-medium text-slate-500" x-text="index + 1"></td>
+							<td class="p-4">
+								<div class="flex items-center gap-3">
+									<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border"
+										 :class="student.gender === 'Female' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-blue-50 text-blue-600 border-blue-200'"
+										 x-text="(student.name || 'S').charAt(0).toUpperCase()">
+									</div>
+									<div>
+										<div class="font-bold text-slate-800" x-text="student.name"></div>
+									</div>
+								</div>
+							</td>
+							<td class="p-4 text-xs font-mono text-slate-600 font-bold" x-text="student.id_number || 'N/A'"></td>
+							<td class="p-4 text-center">
+								<span class="px-2 py-1 rounded text-[10px] font-bold tracking-wide uppercase"
+									  :class="student.gender === 'Female' ? 'bg-rose-50 text-rose-600' : (student.gender === 'Male' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-600')"
+									  x-text="student.gender === 'Female' ? 'ស្រី' : (student.gender === 'Male' ? 'ប្រុស' : 'ផ្សេងៗ')">
+								</span>
+							</td>
+							<td class="p-4 text-xs text-slate-600 font-medium" x-text="student.dob || 'មិនមាន'"></td>
+							<td class="p-4 text-xs text-slate-600 font-medium" x-text="student.phone || 'មិនមាន'"></td>
+							<td class="p-4 text-xs text-slate-500" x-text="student.email || 'N/A'"></td>
+						</tr>
+					</template>
+
+					<tr x-show="filteredStudentsInList.length === 0" x-cloak>
+						<td colspan="7" class="p-16 text-center text-slate-400">
+							<div class="flex flex-col items-center justify-center gap-3">
+								<div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+									<i class="fas fa-user-slash text-2xl text-slate-300"></i>
+								</div>
+								<span x-text="!teacherListForm.class_id ? 'សូមជ្រើសរើសថ្នាក់រៀនជាមុនសិន' : (studentSearchQuery ? 'រកមិនឃើញសិស្សដែលអ្នកស្វែងរកទេ' : 'មិនមានសិស្សនៅក្នុងថ្នាក់នេះទេ')"></span>
+							</div>
+						</td>
+					</tr>
+
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>

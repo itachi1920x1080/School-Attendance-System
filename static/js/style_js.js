@@ -4,7 +4,7 @@ document.addEventListener('alpine:init', () => {
         // ==========================================
         // ១. ការកំណត់ State និងអថេរគោល
         // ==========================================
-        role: userRole,
+        role: String(userRole || 'student').trim().toLowerCase(),
         users: initialUsers,
         departmentRows: [],
         colleges: [],
@@ -149,10 +149,44 @@ document.addEventListener('alpine:init', () => {
             course: '',
             records: {} 
         },
+        teacherSummary: { total_classes: 0, total_students: 0, next_class_name: '', next_class_time: '' },
+        teacherListForm: {
+            class_id: ''
+        },
+        teacherClasses: [],
+        teacherSchedule: [],
+        studentsInList: [],
+        studentSearchQuery: '',
+        // ==========================================
+        // ៩. មុខងារសម្រាប់ផ្ទាំងសិស្ស (Student Dashboard)
+        // ==========================================
+        studentSummary: { total_subjects: 0, attendance_rate: 0, present: 0, absent: 0, leave_late: 0, total_sessions: 0 },
+        studentSchedule: [],
+        studentAttendanceRecords: [],
+        attendanceFilterMonth: 'all',
+        studentOverview: {
+            loading: false,
+            selectedMonth: 'all',
+            summary: {
+                total_classes: 0,
+                present_count: 0,
+                excused_late_count: 0,
+                absent_count: 0,
+                attendance_percent: 0,
+                subjects_count: 0
+            },
+            next_class: {
+                subject_name: '-',
+                room_display: '-',
+                start_time: '-',
+                day_of_week: '-'
+            },
+            attendance_records: []
+        },
 
         activeTab: (() => {
             if (userRole === 'admin') return 'system_overview';
-            if (userRole === 'teacher') return 'statistics';
+            if (userRole === 'teacher') return 'teacher_overview';
             return 'student_overview';
         })(),
 
@@ -187,6 +221,37 @@ document.addEventListener('alpine:init', () => {
 
                 // Ensure subject dropdown data exists for ManageTeacher + EditTeacher modal
                 await this.fetchSubjectsSafe();
+
+                if (this.role === 'student') {
+                    await Promise.all([
+                        this.fetchProfile(),
+                        this.fetchStudentOverview(),
+                        this.fetchStudentSchedule(),
+                        this.fetchStudentAttendance()
+                    ]);
+
+                    if (typeof this.$watch === 'function') {
+                        this.$watch('attendanceFilterMonth', async (month, oldMonth) => {
+                            const normalizedMonth = String(month || 'all');
+                            if (normalizedMonth === String(oldMonth || 'all')) return;
+
+                            this.studentOverview.selectedMonth = normalizedMonth;
+                            await Promise.all([
+                                this.fetchStudentOverview(normalizedMonth),
+                                this.fetchStudentAttendance()
+                            ]);
+                        });
+                    }
+                }
+
+                if (this.role === 'teacher') {
+                    await Promise.all([
+                        this.fetchProfile(),
+                        this.fetchTeacherOverview(),
+                        this.fetchTeacherClasses(),
+                        this.fetchTeacherSchedule()
+                    ]);
+                }
 
             } catch (error) {
                 console.error('init error:', error);
@@ -458,6 +523,19 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
+        get filteredStudentsInList() {
+            const source = Array.isArray(this.studentsInList) ? this.studentsInList : [];
+            const q = String(this.studentSearchQuery || '').trim().toLowerCase();
+            if (!q) return source;
+
+            return source.filter(student => {
+                const name = String(student.name || '').toLowerCase();
+                const idNumber = String(student.id_number || '').toLowerCase();
+                const email = String(student.email || '').toLowerCase();
+                return name.includes(q) || idNumber.includes(q) || email.includes(q);
+            });
+        },
+
         theme: {
             bg: userRole === 'admin' ? 'bg-blue-600' : (userRole === 'teacher' ? 'bg-emerald-600' : 'bg-violet-600'),
             text: userRole === 'admin' ? 'text-blue-600' : (userRole === 'teacher' ? 'text-emerald-600' : 'text-violet-600'),
@@ -488,8 +566,40 @@ document.addEventListener('alpine:init', () => {
                 // បន្ថែមមុខងារ Fetch ផ្សេងៗនៅទីនេះពេលលោកអ្នកសរសេររួច
                 case 'chat': this.fetchChat(); break;
                 case 'statistics': this.fetchStatistics(); break;
+                case 'teacher_overview':
+                    this.fetchProfile();
+                    this.fetchTeacherOverview();
+                    break;
+                case 'teacher_attendance':
+                    // Keep existing teacher attendance form state and profile fresh.
+                    this.fetchProfile();
+                    this.fetchTeacherClasses();
+                    break;
+                case 'teacher_schedule':
+                    this.fetchProfile();
+                    this.fetchTeacherSchedule();
+                    break;
+                case 'teacher_students':
+                    this.fetchProfile();
+                    this.fetchTeacherClasses();
+                    this.studentSearchQuery = '';
+                    this.fetchStudentsForList();
+                    break;
                 case 'system_overview': this.fetchSystemOverview(); break;
-                case 'student_overview': this.fetchStudentOverview(); break;
+                case 'student_overview':
+                    this.fetchStudentOverview();
+                    this.fetchStudentSchedule();
+                    break;
+                case 'student_schedule':
+                case 'my_schedule':
+                    this.fetchStudentOverview();
+                    this.fetchStudentSchedule();
+                    break;
+                case 'student_attendance':
+                case 'my_attendance':
+                    this.fetchStudentOverview();
+                    this.fetchStudentAttendance();
+                    break;
                 case 'admin_class': this.fetchClasses(); break;
                 case 'admin_users': this.fetchUsers(); break;
                 case 'admin_edit_user': this.fetchUsers(); break;
@@ -510,6 +620,241 @@ document.addEventListener('alpine:init', () => {
                     this.fetchTeachers();
                     break;
             }
+        },
+
+        async fetchStudentOverview(month = null) {
+            if (this.role !== 'student') return;
+
+            const selectedMonth = month ?? this.studentOverview.selectedMonth ?? this.attendanceFilterMonth ?? 'all';
+            this.studentOverview.loading = true;
+
+            try {
+                const response = await fetch(`/api/student/summary?month=${encodeURIComponent(selectedMonth)}`);
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success' && result.data) {
+                    this.studentOverview.selectedMonth = String(selectedMonth);
+                    this.studentSummary = {
+                        total_subjects: Number(result.data.total_subjects || 0),
+                        attendance_rate: Number(result.data.attendance_rate || 0),
+                        present: Number(result.data.present || 0),
+                        absent: Number(result.data.absent || 0),
+                        leave_late: Number(result.data.leave_late || 0),
+                        total_sessions: Number(result.data.total_sessions || 0)
+                    };
+
+                    // Keep compatibility object updated for any existing bindings.
+                    this.studentOverview.summary = {
+                        ...this.studentOverview.summary,
+                        total_classes: Number(result.data.total_sessions || 0),
+                        present_count: Number(result.data.present || 0),
+                        excused_late_count: Number(result.data.leave_late || 0),
+                        absent_count: Number(result.data.absent || 0),
+                        attendance_percent: Number(result.data.attendance_rate || 0),
+                        subjects_count: Number(result.data.total_subjects || 0)
+                    };
+                }
+            } catch (error) {
+                console.error('fetchStudentOverview error:', error);
+            } finally {
+                this.studentOverview.loading = false;
+            }
+        },
+
+        async fetchStudentSchedule() {
+            if (this.role !== 'student') return;
+
+            try {
+                const res = await fetch('/api/student/schedule');
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    this.studentSchedule = Array.isArray(result.data) ? result.data : [];
+                }
+            } catch (e) {
+                console.error('Error fetching student schedule:', e);
+            }
+        },
+
+        async fetchStudentAttendance() {
+            if (this.role !== 'student') return;
+
+            try {
+                const month = this.attendanceFilterMonth || 'all';
+                const res = await fetch(`/api/student/attendance?month=${encodeURIComponent(month)}`);
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    this.studentOverview.selectedMonth = String(month);
+                    this.studentAttendanceRecords = Array.isArray(result.data) ? result.data : [];
+                    this.studentOverview.attendance_records = this.studentAttendanceRecords;
+                }
+            } catch (e) {
+                console.error('Error fetching student attendance:', e);
+            }
+        },
+
+        async fetchTeacherClasses() {
+            if (this.role !== 'teacher') return;
+
+            try {
+                const res = await fetch('/api/teacher/classes');
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    this.teacherClasses = Array.isArray(result.data) ? result.data : [];
+                } else {
+                    this.teacherClasses = [];
+                }
+            } catch (e) {
+                this.teacherClasses = [];
+                console.error('Error fetching teacher classes:', e);
+            }
+        },
+
+        async fetchTeacherOverview() {
+            if (this.role !== 'teacher') return;
+
+            try {
+                const res = await fetch('/api/teacher/summary');
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    this.teacherSummary = result.data || this.teacherSummary;
+                }
+            } catch (e) {
+                console.error('Error fetching teacher summary:', e);
+            }
+        },
+
+        async fetchTeacherSchedule() {
+            if (this.role !== 'teacher') return;
+
+            try {
+                const res = await fetch('/api/teacher/schedule');
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    this.teacherSchedule = Array.isArray(result.data) ? result.data : [];
+                } else {
+                    this.teacherSchedule = [];
+                }
+            } catch (e) {
+                this.teacherSchedule = [];
+                console.error('Error fetching teacher schedule:', e);
+            }
+        },
+
+        async fetchStudentsForList() {
+            if (this.role !== 'teacher') return;
+
+            const classId = String(this.teacherListForm?.class_id || '').trim();
+            if (!classId) {
+                this.studentsInList = [];
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/teacher/students/${encodeURIComponent(classId)}`);
+                const result = await res.json();
+                if (res.ok && result.status === 'success') {
+                    this.studentsInList = Array.isArray(result.data) ? result.data : [];
+                } else {
+                    this.studentsInList = [];
+                }
+            } catch (e) {
+                this.studentsInList = [];
+                console.error('Error fetching students list:', e);
+            }
+        },
+
+        get filteredStudentAttendance() {
+            if (this.attendanceFilterMonth === 'all') return this.studentAttendanceRecords;
+            return this.studentAttendanceRecords.filter(record => {
+                if (!record.attendance_date) return false;
+
+                // Accept YYYY-MM-DD or datetime values without timezone side effects.
+                const raw = String(record.attendance_date).trim();
+                const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (match) {
+                    return String(Number(match[2])) === this.attendanceFilterMonth;
+                }
+
+                const parsed = new Date(raw);
+                if (Number.isNaN(parsed.getTime())) return false;
+                return String(parsed.getMonth() + 1) === this.attendanceFilterMonth;
+            });
+        },
+
+        get formattedTeacherSchedule() {
+            if (!this.teacherSchedule || this.teacherSchedule.length === 0) return [];
+            const timeSlots = {};
+
+            this.teacherSchedule.forEach(sch => {
+                const timeKey = `${sch.start_time}-${sch.end_time}`;
+                if (!timeSlots[timeKey]) {
+                    timeSlots[timeKey] = {
+                        start: this.formatTimeAMPM(sch.start_time),
+                        end: this.formatTimeAMPM(sch.end_time),
+                        rawStart: sch.start_time,
+                        days: {}
+                    };
+                }
+                timeSlots[timeKey].days[sch.day_of_week] = sch;
+            });
+
+            return Object.values(timeSlots).sort((a, b) => String(a.rawStart || '').localeCompare(String(b.rawStart || '')));
+        },
+
+        formatTimeAMPM(time24) {
+            if (!time24) return '';
+            const parts = String(time24).split(':');
+            if (parts.length < 2) return String(time24);
+
+            let hours = parseInt(parts[0], 10);
+            const minutes = parts[1];
+            if (Number.isNaN(hours)) return String(time24);
+
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            const strHour = hours < 10 ? `0${hours}` : `${hours}`;
+            return `${strHour}:${minutes} ${ampm}`;
+        },
+
+        get formattedStudentSchedule() {
+            if (!this.studentSchedule || this.studentSchedule.length === 0) return [];
+            const timeSlots = {};
+
+            this.studentSchedule.forEach(sch => {
+                const timeKey = `${sch.start_time}-${sch.end_time}`;
+                if (!timeSlots[timeKey]) {
+                    timeSlots[timeKey] = {
+                        start: this.formatTimeAMPM(sch.start_time),
+                        end: this.formatTimeAMPM(sch.end_time),
+                        rawStart: sch.start_time,
+                        days: {}
+                    };
+                }
+                timeSlots[timeKey].days[sch.day_of_week] = sch;
+            });
+            return Object.values(timeSlots).sort((a, b) => String(a.rawStart || '').localeCompare(String(b.rawStart || '')));
+        },
+
+        studentStatusLabel(status) {
+            const raw = String(status || '').toLowerCase();
+            if (raw === 'present' || raw === 'វត្តមាន') return 'វត្តមាន';
+            if (raw === 'absent' || raw === 'អវត្តមាន') return 'អវត្តមាន';
+            if (raw === 'late' || raw === 'យឺត') return 'យឺត';
+            return 'ច្បាប់';
+        },
+
+        studentStatusClass(status) {
+            const raw = String(status || '').toLowerCase();
+            if (raw === 'present' || raw === 'វត្តមាន') {
+                return 'bg-emerald-50 text-emerald-600 border border-emerald-200';
+            }
+            if (raw === 'absent' || raw === 'អវត្តមាន') {
+                return 'bg-rose-50 text-rose-600 border border-rose-200';
+            }
+            if (raw === 'late' || raw === 'យឺត') {
+                return 'bg-amber-50 text-amber-600 border border-amber-200';
+            }
+            return 'bg-blue-50 text-blue-600 border border-blue-200';
         },
 
         // មុខងារទាញទិន្នន័យសង្ខេបសម្រាប់ផ្ទាំង Report

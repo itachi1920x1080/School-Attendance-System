@@ -279,6 +279,49 @@ LEFT JOIN academic_year ay ON up.academic_year_id = ay.id
 LEFT JOIN classes cl ON up.class_id = cl.id
 WHERE u.role = 'Student';
 
+CREATE VIEW v_teachers_with_timetable AS
+SELECT
+    u.id AS teacher_id,
+    u.name AS teacher_name,
+    u.email,
+    COALESCE(tch.teacher_code, 'N/A') AS teacher_code,
+    COALESCE(d.department_name, 'N/A') AS department_name,
+    COUNT(t.id) AS schedule_count,
+    MIN(t.start_time) AS first_period,
+    MAX(t.end_time) AS last_period
+FROM users u
+LEFT JOIN teachers tch ON tch.user_id = u.id
+LEFT JOIN department d ON d.id = tch.department_id
+LEFT JOIN timetable t ON t.teacher_id = u.id
+WHERE u.role = 'Teacher'
+GROUP BY
+    u.id,
+    u.name,
+    u.email,
+    tch.teacher_code,
+    d.department_name
+HAVING COUNT(t.id) > 0;
+
+CREATE VIEW v_teachers_without_timetable AS
+SELECT
+    u.id AS teacher_id,
+    u.name AS teacher_name,
+    u.email,
+    COALESCE(tch.teacher_code, 'N/A') AS teacher_code,
+    COALESCE(d.department_name, 'N/A') AS department_name
+FROM users u
+LEFT JOIN teachers tch ON tch.user_id = u.id
+LEFT JOIN department d ON d.id = tch.department_id
+LEFT JOIN timetable t ON t.teacher_id = u.id
+WHERE u.role = 'Teacher'
+GROUP BY
+    u.id,
+    u.name,
+    u.email,
+    tch.teacher_code,
+    d.department_name
+HAVING COUNT(t.id) = 0;
+
 -- ==========================================
 -- 4) Trigger
 -- ==========================================
@@ -1156,115 +1199,97 @@ DELIMITER ;
 -- ==========================================
 CALL generate_rooms_for_building_A();
 
--- Timetable + ticket
-INSERT INTO timetable (
-    department_id,
-    academic_year_id,
-    class_id,
-    subject_id,
-    semester,
-    subject_name,
-    day_of_week,
-    start_time,
-    end_time,
-    room_id,
-    teacher_id
-) VALUES
--- IT Department Year 1 - Semester 1 (Monday-Friday)
+-- ==========================================
+-- បញ្ចូលទិន្នន័យកាលវិភាគរៀន (Full Timetable Insert)
+-- ==========================================
+
+-- លុបទិន្នន័យកាលវិភាគចាស់ចោលសិន ដើម្បីកុំឱ្យជាន់គ្នា
+TRUNCATE TABLE timetable;
+
+INSERT INTO timetable (department_id, academic_year_id, class_id, subject_id, semester, subject_name, day_of_week, start_time, end_time, room_id, teacher_id) VALUES
+
+-- ឆ្នាំទី ១ (Year 1) - វេនព្រឹក (Morning) - ថ្នាក់ M1
 (22, 1, 1, 1, 1, 'Introduction to Computer Science', 'Monday', '07:30:00', '09:00:00', 1, 2),
-(22, 1, 1, 2, 1, 'Programming in C/C++', 'Tuesday', '07:30:00', '09:00:00', 2, 13),
-(22, 1, 1, 1, 1, 'Introduction to Computer Science', 'Wednesday', '09:30:00', '11:00:00', 3, 2),
-(22, 1, 1, 2, 1, 'Programming in C/C++', 'Thursday', '09:30:00', '11:00:00', 4, 13),
-(22, 1, 1, 1, 1, 'Introduction to Computer Science', 'Friday', '13:00:00', '14:30:00', 5, 2),
+(22, 1, 1, 2, 1, 'Programming in C/C++', 'Monday', '09:30:00', '11:00:00', 1, 13),
+(22, 1, 1, 13, 1, 'Core English I', 'Tuesday', '07:30:00', '09:00:00', 2, 19),
+(22, 1, 1, 28, 1, 'Calculus I', 'Tuesday', '09:30:00', '11:00:00', 2, 38),
+(22, 1, 1, 1, 1, 'Introduction to Computer Science', 'Wednesday', '07:30:00', '09:00:00', 1, 2),
+(22, 1, 1, 2, 1, 'Programming in C/C++', 'Wednesday', '09:30:00', '11:00:00', 1, 13),
+(22, 1, 1, 13, 1, 'Core English I', 'Thursday', '07:30:00', '09:00:00', 2, 19),
+(22, 1, 1, 28, 1, 'Calculus I', 'Thursday', '09:30:00', '11:00:00', 2, 38),
+(22, 1, 1, 36, 1, 'Physics I: Mechanics', 'Friday', '07:30:00', '09:00:00', 3, 39),
+(22, 1, 1, 21, 1, 'ប្រវត្តិអក្សរសាស្ត្រខ្មែរ', 'Friday', '09:30:00', '11:00:00', 3, 24),
 
--- IT Department Year 2 - Semester 1
-(22, 2, 2, 3, 1, 'Data Structures & Algorithms', 'Monday', '09:00:00', '10:30:00', 2, 14),
-(22, 2, 2, 4, 1, 'Database Management Systems', 'Tuesday', '09:00:00', '10:30:00', 3, 15),
-(22, 2, 2, 3, 1, 'Data Structures & Algorithms', 'Wednesday', '11:00:00', '12:30:00', 4, 14),
-(22, 2, 2, 4, 1, 'Database Management Systems', 'Thursday', '11:00:00', '12:30:00', 5, 15),
-(22, 2, 2, 3, 1, 'Data Structures & Algorithms', 'Friday', '14:00:00', '15:30:00', 6, 14),
+-- ឆ្នាំទី ១ (Year 1) - វេនរសៀល (Afternoon) - ថ្នាក់ A1
+(22, 1, 10, 1, 1, 'Introduction to Computer Science', 'Monday', '13:30:00', '15:00:00', 4, 2),
+(22, 1, 10, 2, 1, 'Programming in C/C++', 'Monday', '15:30:00', '17:00:00', 4, 13),
+(22, 1, 10, 13, 1, 'Core English I', 'Tuesday', '13:30:00', '15:00:00', 5, 19),
+(22, 1, 10, 28, 1, 'Calculus I', 'Tuesday', '15:30:00', '17:00:00', 5, 38),
+(22, 1, 10, 1, 1, 'Introduction to Computer Science', 'Wednesday', '13:30:00', '15:00:00', 4, 2),
+(22, 1, 10, 2, 1, 'Programming in C/C++', 'Wednesday', '15:30:00', '17:00:00', 4, 13),
+(22, 1, 10, 13, 1, 'Core English I', 'Thursday', '13:30:00', '15:00:00', 5, 19),
+(22, 1, 10, 28, 1, 'Calculus I', 'Thursday', '15:30:00', '17:00:00', 5, 38),
+(22, 1, 10, 36, 1, 'Physics I: Mechanics', 'Friday', '13:30:00', '15:00:00', 6, 39),
 
--- English Department Year 1 - Semester 1
-(34, 1, 3, 7, 1, 'Core English I', 'Monday', '07:30:00', '09:00:00', 7, 19),
-(34, 1, 3, 7, 1, 'Core English I', 'Wednesday', '09:30:00', '11:00:00', 8, 19),
-(34, 1, 3, 7, 1, 'Core English I', 'Friday', '13:00:00', '14:30:00', 9, 19),
+-- ឆ្នាំទី ១ (Year 1) - វេនយប់ (Evening) - ថ្នាក់ E1
+(22, 1, 19, 1, 1, 'Introduction to Computer Science', 'Monday', '17:30:00', '19:00:00', 11, 2),
+(22, 1, 19, 2, 1, 'Programming in C/C++', 'Monday', '19:15:00', '20:45:00', 11, 13),
+(22, 1, 19, 13, 1, 'Core English I', 'Tuesday', '17:30:00', '19:00:00', 12, 19),
+(22, 1, 19, 28, 1, 'Calculus I', 'Tuesday', '19:15:00', '20:45:00', 12, 38),
+(22, 1, 19, 1, 1, 'Introduction to Computer Science', 'Wednesday', '17:30:00', '19:00:00', 11, 2),
+(22, 1, 19, 2, 1, 'Programming in C/C++', 'Wednesday', '19:15:00', '20:45:00', 11, 13),
+(22, 1, 19, 13, 1, 'Core English I', 'Thursday', '17:30:00', '19:00:00', 12, 19),
+(22, 1, 19, 28, 1, 'Calculus I', 'Thursday', '19:15:00', '20:45:00', 12, 38),
+(22, 1, 19, 36, 1, 'Physics I: Mechanics', 'Friday', '17:30:00', '19:00:00', 13, 39),
 
--- English Department Year 2 - Semester 1
-(34, 2, 4, 11, 1, 'Speaking and Listening Skills', 'Monday', '09:00:00', '10:30:00', 10, 20),
-(34, 2, 4, 11, 1, 'Speaking and Listening Skills', 'Wednesday', '11:00:00', '12:30:00', 11, 20),
-(34, 2, 4, 11, 1, 'Speaking and Listening Skills', 'Friday', '14:00:00', '15:30:00', 12, 20),
+-- ឆ្នាំទី ១ (Year 1) - SLS
+(22, 1, 28, 1, 1, 'Introduction to Computer Science', 'Saturday', '08:00:00', '11:00:00', 10, 2),
+(22, 1, 28, 2, 1, 'Programming in C/C++', 'Saturday', '13:00:00', '16:00:00', 10, 13),
+(22, 1, 28, 13, 1, 'Core English I', 'Sunday', '08:00:00', '11:00:00', 10, 19),
+(22, 1, 28, 28, 1, 'Calculus I', 'Sunday', '13:00:00', '16:00:00', 10, 38),
 
--- Mathematics Department Year 1 - Semester 1
-(18, 1, 5, 19, 1, 'Calculus I', 'Monday', '07:30:00', '09:30:00', 13, 26),
-(18, 1, 5, 19, 1, 'Calculus I', 'Wednesday', '07:30:00', '09:30:00', 14, 26),
-(18, 1, 5, 19, 1, 'Calculus I', 'Friday', '13:00:00', '15:00:00', 15, 26),
+-- ឆ្នាំទី ២ (Year 2) - M1
+(22, 2, 29, 3, 1, 'Data Structures and Algorithms', 'Monday', '07:30:00', '09:00:00', 20, 14),
+(22, 2, 29, 4, 1, 'Database Management Systems', 'Monday', '09:30:00', '11:00:00', 20, 15),
+(22, 2, 29, 5, 1, 'Web Development (HTML/CSS/JS)', 'Tuesday', '07:30:00', '09:00:00', 21, 16),
+(22, 2, 29, 15, 1, 'Speaking and Listening Skills', 'Tuesday', '09:30:00', '11:00:00', 21, 21),
+(22, 2, 29, 3, 1, 'Data Structures and Algorithms', 'Wednesday', '07:30:00', '09:00:00', 20, 14),
+(22, 2, 29, 4, 1, 'Database Management Systems', 'Wednesday', '09:30:00', '11:00:00', 20, 15),
+(22, 2, 29, 5, 1, 'Web Development (HTML/CSS/JS)', 'Thursday', '07:30:00', '09:00:00', 21, 16),
+(22, 2, 29, 15, 1, 'Speaking and Listening Skills', 'Thursday', '09:30:00', '11:00:00', 21, 21),
+(22, 2, 29, 30, 1, 'Calculus II', 'Friday', '07:30:00', '09:00:00', 22, 27),
+(22, 2, 29, 49, 1, 'Organic Chemistry I', 'Friday', '09:30:00', '11:00:00', 22, 30),
 
--- Mathematics Department Year 2 - Semester 1
-(18, 2, 6, 21, 1, 'Calculus II', 'Monday', '09:00:00', '11:00:00', 16, 27),
-(18, 2, 6, 21, 1, 'Calculus II', 'Wednesday', '09:00:00', '11:00:00', 17, 27),
-(18, 2, 6, 21, 1, 'Calculus II', 'Friday', '14:00:00', '16:00:00', 18, 27),
+-- ឆ្នាំទី ៣ (Year 3) - M1
+(22, 3, 57, 6, 1, 'Computer Networks', 'Monday', '07:30:00', '09:00:00', 30, 17),
+(22, 3, 57, 7, 1, 'Software Engineering', 'Monday', '09:30:00', '11:00:00', 30, 18),
+(22, 3, 57, 8, 1, 'Mobile App Development', 'Tuesday', '07:30:00', '09:00:00', 31, 99),
+(22, 3, 57, 17, 1, 'Translation and Interpretation', 'Tuesday', '09:30:00', '11:00:00', 31, 23),
+(22, 3, 57, 6, 1, 'Computer Networks', 'Wednesday', '07:30:00', '09:00:00', 30, 17),
+(22, 3, 57, 7, 1, 'Software Engineering', 'Wednesday', '09:30:00', '11:00:00', 30, 18),
+(22, 3, 57, 8, 1, 'Mobile App Development', 'Thursday', '07:30:00', '09:00:00', 31, 99),
+(22, 3, 57, 17, 1, 'Translation and Interpretation', 'Thursday', '09:30:00', '11:00:00', 31, 23),
+(22, 3, 57, 32, 1, 'Advanced Mathematics', 'Friday', '07:30:00', '09:00:00', 32, 69),
 
--- Physics Department Year 1 - Semester 1
-(19, 1, 7, 23, 1, 'Physics I: Mechanics', 'Monday', '08:00:00', '10:00:00', 19, 28),
-(19, 1, 7, 23, 1, 'Physics I: Mechanics', 'Wednesday', '08:00:00', '10:00:00', 20, 28),
-(19, 1, 7, 23, 1, 'Physics I: Mechanics', 'Friday', '13:30:00', '15:30:00', 21, 28),
+-- ឆ្នាំទី ៤ (Year 4) - M1
+(22, 4, 85, 9, 1, 'Cloud Computing', 'Monday', '07:30:00', '09:00:00', 40, 73),
+(22, 4, 85, 10, 1, 'Cybersecurity Fundamentals', 'Monday', '09:30:00', '11:00:00', 40, 74),
+(22, 4, 85, 11, 1, 'Artificial Intelligence', 'Tuesday', '07:30:00', '09:00:00', 41, 75),
+(22, 4, 85, 12, 1, 'Machine Learning', 'Tuesday', '09:30:00', '11:00:00', 41, 76),
+(22, 4, 85, 9, 1, 'Cloud Computing', 'Wednesday', '07:30:00', '09:00:00', 40, 73),
+(22, 4, 85, 10, 1, 'Cybersecurity Fundamentals', 'Wednesday', '09:30:00', '11:00:00', 40, 74),
+(22, 4, 85, 11, 1, 'Artificial Intelligence', 'Thursday', '07:30:00', '09:00:00', 41, 75),
+(22, 4, 85, 12, 1, 'Machine Learning', 'Thursday', '09:30:00', '11:00:00', 41, 76),
+(22, 4, 85, 20, 1, 'Advanced English', 'Friday', '07:30:00', '09:00:00', 42, 79);
 
--- Biology Department Year 1 - Semester 1
-(20, 1, 8, 27, 1, 'General Biology I', 'Monday', '09:00:00', '11:00:00', 22, 29),
-(20, 1, 8, 27, 1, 'General Biology I', 'Wednesday', '09:00:00', '11:00:00', 23, 29),
-(20, 1, 8, 27, 1, 'General Biology I', 'Friday', '14:00:00', '16:00:00', 24, 29),
-
--- Chemistry Department Year 1 - Semester 1
-(23, 1, 9, 31, 1, 'General Chemistry I', 'Monday', '07:30:00', '09:30:00', 25, 30),
-(23, 1, 9, 31, 1, 'General Chemistry I', 'Wednesday', '07:30:00', '09:30:00', 26, 30),
-(23, 1, 9, 31, 1, 'General Chemistry I', 'Friday', '13:00:00', '15:00:00', 27, 30),
-
--- Engineering Department Year 2 - Semester 1
-(2, 2, 10, 37, 1, 'Structural Analysis', 'Monday', '09:00:00', '10:30:00', 28, 31),
-(2, 2, 10, 37, 1, 'Structural Analysis', 'Wednesday', '09:00:00', '10:30:00', 29, 31),
-(2, 2, 10, 37, 1, 'Structural Analysis', 'Friday', '14:00:00', '15:30:00', 30, 31),
-
--- Khmer Literature Department Year 1 - Semester 1
-(1, 1, 11, 13, 1, 'ប្រវត្តិអក្សរសាស្ត្រខ្មែរ', 'Monday', '07:30:00', '09:00:00', 31, 24),
-(1, 1, 11, 13, 1, 'ប្រវត្តិអក្សរសាស្ត្រខ្មែរ', 'Wednesday', '09:30:00', '11:00:00', 32, 24),
-(1, 1, 11, 13, 1, 'ប្រវត្តិអក្សរសាស្ត្រខ្មែរ', 'Friday', '13:00:00', '14:30:00', 33, 24),
-
--- IT Department Year 3 - Semester 1
-(22, 3, 12, 5, 1, 'Software Engineering', 'Tuesday', '07:30:00', '09:00:00', 34, 36),
-(22, 3, 12, 5, 1, 'Software Engineering', 'Thursday', '09:30:00', '11:00:00', 35, 36),
-(22, 3, 12, 5, 1, 'Software Engineering', 'Saturday', '13:00:00', '14:30:00', 36, 36),
-
--- IT Department Year 4 - Semester 1
-(22, 4, 13, 35, 2, 'Machine Learning', 'Monday', '10:00:00', '11:30:00', 37, 43),
-(22, 4, 13, 35, 2, 'Machine Learning', 'Wednesday', '10:00:00', '11:30:00', 38, 43),
-(22, 4, 13, 35, 2, 'Machine Learning', 'Friday', '15:00:00', '16:30:00', 39, 43),
-
--- French Language Department Year 1
-(35, 1, 14, 43, 1, 'French I', 'Tuesday', '07:30:00', '09:00:00', 40, 54),
-(35, 1, 14, 43, 1, 'French I', 'Thursday', '07:30:00', '09:00:00', 41, 54),
-
--- Japanese Language Department Year 1
-(36, 1, 15, 45, 1, 'Japanese I', 'Monday', '13:00:00', '14:30:00', 42, 55),
-(36, 1, 15, 45, 1, 'Japanese I', 'Wednesday', '13:00:00', '14:30:00', 43, 55),
-
--- Business Department Year 2
-(1, 2, 16, 47, 1, 'International Business Management', 'Tuesday', '09:00:00', '10:30:00', 44, 56),
-(1, 2, 16, 47, 1, 'International Business Management', 'Thursday', '09:00:00', '10:30:00', 45, 56),
-(1, 2, 16, 47, 1, 'International Business Management', 'Saturday', '14:00:00', '15:30:00', 46, 56),
-
--- International Relations Department Year 1
-(31, 1, 17, 51, 1, 'International Relations', 'Monday', '10:00:00', '11:30:00', 47, 51),
-(31, 1, 17, 51, 1, 'International Relations', 'Wednesday', '10:00:00', '11:30:00', 48, 51),
-(31, 1, 17, 51, 1, 'International Relations', 'Friday', '15:00:00', '16:30:00', 49, 51),
-
--- Education Department Year 1
-(28, 1, 18, 49, 1, 'Curriculum Design', 'Tuesday', '08:00:00', '09:30:00', 50, 48),
-(28, 1, 18, 49, 1, 'Curriculum Design', 'Thursday', '08:00:00', '09:30:00', 51, 48),
-
--- Economics Department Year 1c
-(24, 1, 19, 48, 1, 'Applied Economics', 'Monday', '11:00:00', '12:30:00', 52, 44),
-(24, 1, 19, 48, 1, 'Applied Economics', 'Wednesday', '11:00:00', '12:30:00', 53, 44),
-(24, 1, 19, 48, 1, 'Applied Economics', 'Friday', '16:00:00', '17:30:00', 54, 44);
+-- Teacher 2 extra schedule data for morning/evening test
+INSERT INTO timetable (department_id, academic_year_id, class_id, subject_id, semester, subject_name, day_of_week, start_time, end_time, room_id, teacher_id) VALUES
+(22, 2, 30, 3, 1, 'Data Structures and Algorithms', 'Monday', '13:30:00', '15:00:00', 20, 2),
+(22, 2, 30, 3, 1, 'Data Structures and Algorithms', 'Wednesday', '13:30:00', '15:00:00', 20, 2),
+(22, 2, 47, 4, 1, 'Database Management Systems', 'Tuesday', '17:30:00', '19:00:00', 23, 2),
+(22, 2, 47, 4, 1, 'Database Management Systems', 'Thursday', '17:30:00', '19:00:00', 23, 2),
+(22, 2, 30, 5, 1, 'Web Development (HTML/CSS/JS)', 'Friday', '13:30:00', '15:00:00', 21, 2),
+(22, 2, 47, 15, 1, 'Speaking and Listening Skills', 'Friday', '17:30:00', '19:00:00', 24, 2);
 
 INSERT INTO support_tickets (user_id, subject, category, priority, description, status) VALUES
 (3, 'ភ្លេចលេខសម្ងាត់ WiFi', 'Account Access', 'Medium', 'ខ្ញុំមិនអាចភ្ជាប់ WiFi នៅក្នុងបណ្ណាល័យបានទេ', 'Open');
@@ -1323,6 +1348,125 @@ SET @sql := IF(@address_exists = 0,
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- ==========================================
+-- ស្គ្រីបសម្រាប់បង្កើតសិស្សគ្រប់ដេប៉ាតឺម៉ង់ និងវត្តមានសរុប
+-- (Auto-Generate Students for All Departments & Bulk Attendance)
+-- ==========================================
+
+-- កំណត់ឱ្យលុប Procedure ចាស់ចោលសិនបើមាន
+DROP PROCEDURE IF EXISTS GenerateStudentsForAllDepts;
+DROP PROCEDURE IF EXISTS GenerateBulkAttendance;
+
+DELIMITER $$
+
+-- ១. Procedure សម្រាប់បង្កើតសិស្ស ៥នាក់ ចូលគ្រប់ដេប៉ាតឺម៉ង់
+CREATE PROCEDURE GenerateStudentsForAllDepts()
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE curr_dept_id INT;
+    DECLARE curr_dept_name VARCHAR(150);
+    DECLARE i INT;
+    DECLARE new_user_id INT;
+    DECLARE new_code VARCHAR(50);
+
+    -- ទាញយកគ្រប់ដេប៉ាតឺម៉ង់ទាំងអស់មក Loop
+    DECLARE dept_cursor CURSOR FOR SELECT id, department_name FROM department;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN dept_cursor;
+
+    dept_loop: LOOP
+        FETCH dept_cursor INTO curr_dept_id, curr_dept_name;
+        IF done = 1 THEN
+            LEAVE dept_loop;
+        END IF;
+
+        SET i = 1;
+        -- បង្កើតសិស្ស ៥ នាក់សម្រាប់ដេប៉ាតឺម៉ង់នីមួយៗ
+        WHILE i <= 5 DO
+            SET new_code = CONCAT('STU-', curr_dept_id, '-', YEAR(CURDATE()), '-', LPAD(FLOOR(RAND() * 9999), 4, '0'));
+
+            -- ក. បញ្ចូលទៅតារាង users
+            INSERT INTO users (name, email, password, role, status)
+            VALUES (
+                CONCAT('Student ', i, ' (', SUBSTRING(curr_dept_name, 1, 15), ')'),
+                CONCAT('stu', curr_dept_id, '_', i, '_', FLOOR(RAND() * 1000), '@hitech.edu'),
+                '123456',
+                'Student',
+                'Active'
+            );
+            SET new_user_id = LAST_INSERT_ID();
+
+            -- ខ. Update តារាង user_profiles (Trigger បានបង្កើតជួររួចហើយ)
+            UPDATE user_profiles
+            SET
+                id_number = new_code,
+                department_id = curr_dept_id,
+                academic_year_id = 1, -- កំណត់ឱ្យរៀនឆ្នាំទី ១
+                class_id = 1, -- កំណត់ចូលថ្នាក់ទី ១ ជាបណ្តោះអាសន្ន
+                gender = IF(RAND() > 0.5, 'Male', 'Female')
+            WHERE user_id = new_user_id;
+
+            -- គ. បញ្ចូលទៅតារាង students
+            INSERT INTO students (user_id, student_code, class_id)
+            VALUES (new_user_id, new_code, 1);
+
+            SET i = i + 1;
+        END WHILE;
+    END LOOP;
+
+    CLOSE dept_cursor;
+END$$
+
+
+-- ២. Procedure សម្រាប់កត់វត្តមានឱ្យសិស្សទាំងអស់ដោយ Random
+CREATE PROCEDURE GenerateBulkAttendance(IN target_date DATE)
+BEGIN
+    INSERT IGNORE INTO attendance (student_id, class_id, subject_id, teacher_id, attendance_date, status, remarks)
+    SELECT
+        u.id AS student_id,
+        COALESCE(up.class_id, 1) AS class_id,
+        -- ព្យាយាមរកមុខវិជ្ជា និងគ្រូតាមដេប៉ាតឺម៉ង់ បើគ្មានទេយកលេខ 1 និងលេខ 2 ជា default
+        COALESCE((SELECT subject_id FROM timetable t WHERE t.department_id = up.department_id LIMIT 1), 1) AS subject_id,
+        COALESCE((SELECT teacher_id FROM timetable t WHERE t.department_id = up.department_id LIMIT 1), 2) AS teacher_id,
+        target_date AS attendance_date,
+        -- Random ស្ថានភាព (80% វត្តមាន, 10% អវត្តមាន, 5% យឺត, 5% ច្បាប់)
+        CASE
+            WHEN RAND() < 0.80 THEN 'Present'
+            WHEN RAND() < 0.90 THEN 'Absent'
+            WHEN RAND() < 0.95 THEN 'Late'
+            ELSE 'Excused'
+        END AS status,
+        CASE
+            WHEN RAND() > 0.95 THEN 'ឈឺគ្រុនក្តៅ'
+            WHEN RAND() > 0.90 THEN 'ស្ទះចរាចរណ៍'
+            ELSE ''
+        END AS remarks
+    FROM users u
+    JOIN user_profiles up ON u.id = up.user_id
+    WHERE u.role = 'Student';
+END$$
+
+DELIMITER ;
+
+-- ==========================================
+-- ៣. ដំណើរការ (Execute) Procedure ខាងលើ
+-- ==========================================
+
+-- ហៅមុខងារបង្កើតសិស្សចូលគ្រប់ដេប៉ា
+CALL GenerateStudentsForAllDepts();
+
+-- ហៅមុខងារកត់វត្តមានសម្រាប់ ៥ ថ្ងៃ (លោកអ្នកអាចដូរថ្ងៃខែបានតាមចិត្ត)
+CALL GenerateBulkAttendance('2026-03-01');
+CALL GenerateBulkAttendance('2026-03-02');
+CALL GenerateBulkAttendance('2026-03-03');
+CALL GenerateBulkAttendance('2026-03-04');
+CALL GenerateBulkAttendance('2026-03-05');
+
+-- អាចរត់កូដនេះដើម្បីមើលលទ្ធផលបាន៖
+-- SELECT * FROM users WHERE role = 'Student';
+-- SELECT * FROM attendance;
 
 SET FOREIGN_KEY_CHECKS = 1;
 SET SQL_SAFE_UPDATES = 1;

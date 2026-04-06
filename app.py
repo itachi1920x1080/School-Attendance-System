@@ -1318,7 +1318,12 @@ def delete_department(id):
             conn.rollback()
             # ប្រសិនបើជាប់ Foreign Key (មានសិស្សកំពុងរៀន) វានឹងលោត Error
             if "foreign key constraint fails" in str(e).lower():
-                 return jsonify({'status': 'error', 'message': 'មិនអាចលុបបានទេ ព្រោះមានទិន្នន័យសិស្ស ឬមុខវិជ្ជាកំពុងជាប់ទាក់ទងនឹងដេប៉ាតឺម៉ង់នេះ!'}), 400
+                return jsonify(
+                    {
+                        'status': 'error',
+                        'message': 'មិនអាចលុបបានទេ ព្រោះមានទិន្នន័យសិស្ស ឬមុខវិជ្ជាកំពុងជាប់ទាក់ទងនឹងដេប៉ាតឺម៉ង់នេះ!'
+                    }
+                ), 400
             return jsonify({'status': 'error', 'message': f'មានកំហុស៖ {str(e)}'}), 500
         finally:
             cursor.close()
@@ -1425,11 +1430,16 @@ def add_subject():
         except Exception as e:
             conn.rollback()
             error_msg = str(e).lower()
-            
+
             # ទី៣៖ ចាប់ Error ករណីបញ្ចូលទិន្នន័យជាន់គ្នា (UNIQUE constraint ដែលយើងបានបង្កើត)
             if 'duplicate entry' in error_msg:
-                 return jsonify({'status': 'error', 'message': 'មុខវិជ្ជានេះមានរួចហើយនៅក្នុងដេប៉ាតឺម៉ង់ និងឆមាសនេះ!'}), 400
-                 
+                return jsonify(
+                    {
+                        'status': 'error',
+                        'message': 'មុខវិជ្ជានេះមានរួចហើយនៅក្នុងដេប៉ាតឺម៉ង់ និងឆមាសនេះ!'
+                    }
+                ), 400
+
             return jsonify({'status': 'error', 'message': f'មានកំហុស៖ {str(e)}'}), 500
         finally:
             cursor.close()
@@ -1500,7 +1510,12 @@ def update_subject():
             conn.rollback()
             # ការពារការកែប្រែឈ្មោះជាន់គ្នា ក្នុងដេប៉ាតឺម៉ង់ និងឆមាសតែមួយ
             if 'duplicate entry' in str(e).lower():
-                 return jsonify({'status': 'error', 'message': 'មុខវិជ្ជានេះមានរួចហើយនៅក្នុងប្រព័ន្ធ!'}), 400
+                return jsonify(
+                    {
+                        'status': 'error',
+                        'message': 'មុខវិជ្ជានេះមានរួចហើយនៅក្នុងប្រព័ន្ធ!'
+                    }
+                ), 400
             return jsonify({'status': 'error', 'message': f'មានកំហុស៖ {str(e)}'}), 500
         finally:
             cursor.close()
@@ -1922,6 +1937,649 @@ def get_attendance_view():
         cursor.execute(sql)
         attendance_records = cursor.fetchall()
         return jsonify({'status': 'success', 'attendance': attendance_records})
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+def _parse_student_month_arg(month_arg):
+    month_raw = (month_arg or 'all').strip().lower()
+    if month_raw.isdigit():
+        parsed = int(month_raw)
+        if 1 <= parsed <= 12:
+            return parsed
+    return None
+
+
+def _get_student_class_id(cursor, user_id):
+    cursor.execute(
+        """
+        SELECT class_id
+        FROM user_profiles
+        WHERE user_id = %s
+        LIMIT 1
+        """,
+        (user_id,)
+    )
+    row = cursor.fetchone() or {}
+    return row.get('class_id')
+
+
+def _get_attendance_date_column(cursor):
+    for candidate in ('attendance_date', 'date', 'taken_at', 'created_at'):
+        cursor.execute(f"SHOW COLUMNS FROM attendance LIKE '{candidate}'")
+        if cursor.fetchone() is not None:
+            return candidate
+    return None
+
+
+@app.route('/api/student/summary', methods=['GET'])
+@login_required
+def get_student_summary():
+    if str(session.get('role', '')).lower() != 'student':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    user_id = session.get('user_id')
+    month_num = _parse_student_month_arg(request.args.get('month'))
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        class_id = _get_student_class_id(cursor, user_id)
+        date_col = _get_attendance_date_column(cursor)
+
+        month_clause = ''
+        params = [user_id]
+        if month_num and date_col:
+            month_clause = f" AND MONTH(a.{date_col}) = %s"
+            params.append(month_num)
+
+        cursor.execute(
+            f"""
+            SELECT
+                COUNT(*) AS total_sessions,
+                SUM(CASE WHEN LOWER(a.status) IN ('present', 'វត្តមាន') THEN 1 ELSE 0 END) AS present,
+                SUM(CASE WHEN LOWER(a.status) IN ('absent', 'អវត្តមាន') THEN 1 ELSE 0 END) AS absent,
+                SUM(CASE WHEN LOWER(a.status) IN ('late', 'excused', 'ច្បាប់', 'យឺត') THEN 1 ELSE 0 END) AS leave_late
+            FROM attendance a
+            WHERE a.student_id = %s{month_clause}
+            """,
+            tuple(params)
+        )
+        row = cursor.fetchone() or {}
+
+        total_sessions = int(row.get('total_sessions') or 0)
+        present = int(row.get('present') or 0)
+
+        total_subjects = 0
+        if class_id:
+            cursor.execute("SHOW COLUMNS FROM timetable LIKE 'class_id'")
+            if cursor.fetchone() is not None:
+                cursor.execute(
+                    """
+                    SELECT COUNT(DISTINCT subject_name) AS total
+                    FROM timetable
+                    WHERE class_id = %s
+                    """,
+                    (class_id,)
+                )
+                total_subjects = int((cursor.fetchone() or {}).get('total') or 0)
+
+        payload = {
+            'total_subjects': total_subjects,
+            'attendance_rate': round((present / total_sessions) * 100) if total_sessions else 0,
+            'present': present,
+            'absent': int(row.get('absent') or 0),
+            'leave_late': int(row.get('leave_late') or 0),
+            'total_sessions': total_sessions,
+        }
+        return jsonify({'status': 'success', 'data': payload})
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+@app.route('/api/student/schedule', methods=['GET'])
+@login_required
+def get_student_schedule():
+    """ទាញយកកាលវិភាគសិក្សារបស់សិស្សម្នាក់ៗ ផ្អែកលើថ្នាក់រៀនរបស់ពួកគេ"""
+    if 'user_id' not in session or str(session.get('role', '')).lower() != 'student':
+        return jsonify({'status': 'error', 'message': 'គ្មានសិទ្ធិអនុញ្ញាត'}), 403
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    try:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            # 🌟 កែប្រែ Query ទីនេះ ឱ្យទាញយកតាមតារាង students វិញដើម្បីភាពច្បាស់លាស់
+            sql = """
+                SELECT
+                    t.day_of_week, t.start_time, t.end_time,
+                    t.subject_name, r.room_name, r.room_number,
+                    u.name AS teacher_name
+                FROM timetable t
+                JOIN students st ON t.class_id = st.class_id
+                LEFT JOIN rooms r ON t.room_id = r.id
+                LEFT JOIN users u ON t.teacher_id = u.id
+                WHERE st.user_id = %s
+                ORDER BY t.start_time ASC
+            """
+            cursor.execute(sql, (user_id,))
+            schedules = cursor.fetchall()
+
+            # បំប្លែងម៉ោង (Time object) ទៅជា String (HH:MM)
+            for sch in schedules:
+                if sch.get('start_time'):
+                    sch['start_time'] = str(sch['start_time'])[:5]
+                if sch.get('end_time'):
+                    sch['end_time'] = str(sch['end_time'])[:5]
+
+            # សម្រាប់ការ Debug: បោះពុម្ពលទ្ធផលនៅក្នុង Terminal របស់ Python
+            print(f"DEBUG: Found {len(schedules)} schedule rows for student {user_id}")
+
+            return jsonify({'status': 'success', 'data': schedules})
+    except Exception as e:
+        print(f"DEBUG API ERROR: {str(e)}")  # ព្រីន Error ចូល Terminal
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/student/attendance', methods=['GET'])
+@login_required
+def get_student_attendance():
+    if str(session.get('role', '')).lower() != 'student':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    user_id = session.get('user_id')
+    month_num = _parse_student_month_arg(request.args.get('month'))
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        date_col = _get_attendance_date_column(cursor)
+        if not date_col:
+            return jsonify({'status': 'success', 'data': []})
+
+        month_clause = ''
+        params = [user_id]
+        if month_num:
+            month_clause = f" AND MONTH(a.{date_col}) = %s"
+            params.append(month_num)
+
+        cursor.execute(
+            f"""
+            SELECT
+                a.id,
+                a.{date_col} AS attendance_date,
+                a.status,
+                COALESCE(a.remarks, '-') AS remarks,
+                sub.subject_name,
+                '-' AS teacher_name
+            FROM attendance a
+            JOIN subjects sub ON sub.id = a.subject_id
+            WHERE a.student_id = %s{month_clause}
+            ORDER BY a.{date_col} DESC, a.id DESC
+            """,
+            tuple(params)
+        )
+        return jsonify({'status': 'success', 'data': cursor.fetchall() or []})
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+@app.route('/api/student/overview', methods=['GET'])
+@login_required
+def get_student_overview():
+    if str(session.get('role', '')).lower() != 'student':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    user_id = session.get('user_id')
+    month_arg = (request.args.get('month') or 'all').strip().lower()
+    month_num = None
+    if month_arg.isdigit():
+        parsed = int(month_arg)
+        if 1 <= parsed <= 12:
+            month_num = parsed
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        cursor.execute(
+            """
+            SELECT class_id
+            FROM user_profiles
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+        profile_row = cursor.fetchone() or {}
+        class_id = profile_row.get('class_id')
+
+        date_col = None
+        for candidate in ('attendance_date', 'date', 'taken_at', 'created_at'):
+            cursor.execute(f"SHOW COLUMNS FROM attendance LIKE '{candidate}'")
+            if cursor.fetchone() is not None:
+                date_col = candidate
+                break
+
+        month_clause = ''
+        month_params = [user_id]
+        if month_num and date_col:
+            month_clause = f" AND MONTH(a.{date_col}) = %s"
+            month_params.append(month_num)
+
+        cursor.execute(
+            f"""
+            SELECT
+                COUNT(*) AS total_classes,
+                SUM(CASE WHEN LOWER(a.status) IN ('present', 'វត្តមាន') THEN 1 ELSE 0 END) AS present_count,
+                SUM(CASE WHEN LOWER(a.status) IN ('late', 'excused', 'ច្បាប់', 'យឺត') THEN 1 ELSE 0 END) AS excused_late_count,
+                SUM(CASE WHEN LOWER(a.status) IN ('absent', 'អវត្តមាន') THEN 1 ELSE 0 END) AS absent_count
+            FROM attendance a
+            WHERE a.student_id = %s{month_clause}
+            """,
+            tuple(month_params)
+        )
+        summary = cursor.fetchone() or {}
+        total_classes = int(summary.get('total_classes') or 0)
+        present_count = int(summary.get('present_count') or 0)
+        attendance_percent = round((present_count / total_classes) * 100) if total_classes else 0
+
+        subjects_count = 0
+        if class_id:
+            cursor.execute("SHOW COLUMNS FROM timetable LIKE 'class_id'")
+            has_timetable_class_id = cursor.fetchone() is not None
+            if has_timetable_class_id:
+                cursor.execute(
+                    """
+                    SELECT COUNT(DISTINCT subject_name) AS total
+                    FROM timetable
+                    WHERE class_id = %s
+                    """,
+                    (class_id,)
+                )
+                subjects_count = int((cursor.fetchone() or {}).get('total') or 0)
+
+        records = []
+        if date_col:
+            records_params = [user_id]
+            records_month_clause = ''
+            if month_num:
+                records_month_clause = f" AND MONTH(a.{date_col}) = %s"
+                records_params.append(month_num)
+
+            cursor.execute(
+                f"""
+                SELECT
+                    a.{date_col} AS attendance_date,
+                    sub.subject_name,
+                    a.status,
+                    COALESCE(a.remarks, '-') AS remarks,
+                    '-' AS teacher_name
+                FROM attendance a
+                JOIN subjects sub ON sub.id = a.subject_id
+                WHERE a.student_id = %s{records_month_clause}
+                ORDER BY a.{date_col} DESC, a.id DESC
+                LIMIT 50
+                """,
+                tuple(records_params)
+            )
+            records = cursor.fetchall() or []
+
+        next_class = {
+            'subject_name': '-',
+            'room_display': '-',
+            'start_time': '-',
+            'day_of_week': '-'
+        }
+
+        if class_id:
+            cursor.execute("SHOW COLUMNS FROM timetable LIKE 'class_id'")
+            has_timetable_class_id = cursor.fetchone() is not None
+            if has_timetable_class_id:
+                cursor.execute("SHOW COLUMNS FROM timetable LIKE 'room_id'")
+                has_room_id = cursor.fetchone() is not None
+                cursor.execute("SHOW COLUMNS FROM timetable LIKE 'room'")
+                has_room_text = cursor.fetchone() is not None
+
+                cursor.execute("SHOW TABLES LIKE 'rooms'")
+                has_rooms = cursor.fetchone() is not None
+                cursor.execute("SHOW TABLES LIKE 'room'")
+                has_room = cursor.fetchone() is not None
+                room_table = 'rooms' if has_rooms else ('room' if has_room else None)
+
+                room_join = ''
+                room_select = "'-' AS room_display"
+                if has_room_id and room_table:
+                    room_join = f"LEFT JOIN {room_table} r ON t.room_id = r.id"
+                    room_select = "COALESCE(r.room_name, r.room_number, CONCAT('Room ', t.room_id)) AS room_display"
+                elif has_room_text:
+                    room_select = "COALESCE(t.room, '-') AS room_display"
+
+                cursor.execute(
+                    f"""
+                    SELECT
+                        t.day_of_week,
+                        t.subject_name,
+                        TIME_FORMAT(t.start_time, '%H:%i:%s') AS start_time_raw,
+                        TIME_FORMAT(t.start_time, '%h:%i %p') AS start_time,
+                        {room_select}
+                    FROM timetable t
+                    {room_join}
+                    WHERE t.class_id = %s
+                    ORDER BY FIELD(
+                        t.day_of_week,
+                        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+                    ), t.start_time
+                    """,
+                    (class_id,)
+                )
+                schedule_rows = cursor.fetchall() or []
+
+                if schedule_rows:
+                    now = datetime.now()
+                    day_order = {
+                        'Monday': 1,
+                        'Tuesday': 2,
+                        'Wednesday': 3,
+                        'Thursday': 4,
+                        'Friday': 5,
+                        'Saturday': 6,
+                        'Sunday': 7,
+                    }
+                    today_idx = day_order.get(now.strftime('%A'), 1)
+                    now_time = now.strftime('%H:%M:%S')
+
+                    chosen = None
+                    for row in schedule_rows:
+                        row_idx = day_order.get(row.get('day_of_week') or '', 99)
+                        row_time = row.get('start_time_raw') or '00:00:00'
+                        if row_idx > today_idx or (row_idx == today_idx and row_time >= now_time):
+                            chosen = row
+                            break
+
+                    if chosen is None:
+                        chosen = schedule_rows[0]
+
+                    next_class = {
+                        'subject_name': chosen.get('subject_name') or '-',
+                        'room_display': chosen.get('room_display') or '-',
+                        'start_time': chosen.get('start_time') or '-',
+                        'day_of_week': chosen.get('day_of_week') or '-'
+                    }
+
+        payload = {
+            'summary': {
+                'total_classes': total_classes,
+                'present_count': present_count,
+                'excused_late_count': int(summary.get('excused_late_count') or 0),
+                'absent_count': int(summary.get('absent_count') or 0),
+                'attendance_percent': attendance_percent,
+                'subjects_count': subjects_count,
+            },
+            'next_class': next_class,
+            'attendance_records': records,
+        }
+        return jsonify({'status': 'success', 'data': payload})
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+@app.route('/api/teacher/classes', methods=['GET'])
+@login_required
+def get_teacher_classes():
+    if str(session.get('role', '')).lower() != 'teacher':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    teacher_user_id = session.get('user_id')
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute(
+            """
+            SELECT DISTINCT
+                t.class_id,
+                COALESCE(c.class_name, CONCAT('Class ', t.class_id)) AS class_name,
+                COALESCE(t.subject_name, '-') AS subject_name
+            FROM timetable t
+            LEFT JOIN classes c ON c.id = t.class_id
+            WHERE t.teacher_id = %s
+            ORDER BY c.class_name, t.subject_name
+            """,
+            (teacher_user_id,)
+        )
+        rows = cursor.fetchall() or []
+        return jsonify({'status': 'success', 'data': rows})
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+@app.route('/api/teacher/summary', methods=['GET'])
+@login_required
+def get_teacher_summary():
+    if str(session.get('role', '')).lower() != 'teacher':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    teacher_user_id = session.get('user_id')
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        cursor.execute(
+            """
+            SELECT COUNT(DISTINCT class_id) AS total_classes
+            FROM timetable
+            WHERE teacher_id = %s
+            """,
+            (teacher_user_id,)
+        )
+        total_classes = int((cursor.fetchone() or {}).get('total_classes') or 0)
+
+        cursor.execute(
+            """
+            SELECT COUNT(DISTINCT s.user_id) AS total_students
+            FROM students s
+            JOIN timetable t ON t.class_id = s.class_id
+            WHERE t.teacher_id = %s
+            """,
+            (teacher_user_id,)
+        )
+        total_students = int((cursor.fetchone() or {}).get('total_students') or 0)
+
+        cursor.execute(
+            """
+            SELECT
+                COALESCE(t.subject_name, '-') AS subject_name,
+                TIME_FORMAT(t.start_time, '%H:%i') AS start_time,
+                TIME_FORMAT(t.end_time, '%H:%i') AS end_time
+            FROM timetable t
+            WHERE t.teacher_id = %s
+            ORDER BY FIELD(
+                t.day_of_week,
+                'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+            ), t.start_time
+            LIMIT 1
+            """,
+            (teacher_user_id,)
+        )
+        next_class = cursor.fetchone() or {}
+
+        next_class_name = next_class.get('subject_name') or 'គ្មានថ្នាក់'
+        next_class_time = '--:--'
+        if next_class.get('start_time') and next_class.get('end_time'):
+            next_class_time = f"{next_class['start_time']} - {next_class['end_time']}"
+
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'total_classes': total_classes,
+                'total_students': total_students,
+                'next_class_name': next_class_name,
+                'next_class_time': next_class_time
+            }
+        })
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+@app.route('/api/teacher/schedule', methods=['GET'])
+@login_required
+def get_teacher_schedule():
+    if str(session.get('role', '')).lower() != 'teacher':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    teacher_user_id = session.get('user_id')
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute(
+            """
+            SELECT
+                t.day_of_week,
+                TIME_FORMAT(t.start_time, '%H:%i') AS start_time,
+                TIME_FORMAT(t.end_time, '%H:%i') AS end_time,
+                COALESCE(t.subject_name, '-') AS subject_name,
+                COALESCE(c.class_name, '-') AS class_name,
+                r.room_name,
+                r.room_number
+            FROM timetable t
+            LEFT JOIN classes c ON t.class_id = c.id
+            LEFT JOIN rooms r ON t.room_id = r.id
+            WHERE t.teacher_id = %s
+            ORDER BY FIELD(
+                t.day_of_week,
+                'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+            ), t.start_time
+            """,
+            (teacher_user_id,)
+        )
+        rows = cursor.fetchall() or []
+        return jsonify({'status': 'success', 'data': rows})
+
+    except pymysql.MySQLError as err:
+        return jsonify({'status': 'error', 'message': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+
+
+@app.route('/api/teacher/students/<int:class_id>', methods=['GET'])
+@app.route('/api/teacher/class_students/<int:class_id>', methods=['GET'])
+@login_required
+def get_teacher_class_students(class_id):
+    if str(session.get('role', '')).lower() != 'teacher':
+        return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+
+    teacher_user_id = session.get('user_id')
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'status': 'error', 'message': 'Database connection failed'}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        cursor.execute(
+            """
+            SELECT 1
+            FROM timetable
+            WHERE class_id = %s AND teacher_id = %s
+            LIMIT 1
+            """,
+            (class_id, teacher_user_id)
+        )
+        is_owner = cursor.fetchone() is not None
+        if not is_owner:
+            return jsonify({'status': 'success', 'data': []})
+
+        cursor.execute(
+            """
+            SELECT
+                u.id,
+                u.name,
+                u.email,
+                up.id_number,
+                up.gender,
+                DATE_FORMAT(up.dob, '%%Y-%%m-%%d') AS dob,
+                up.phone
+            FROM students s
+            JOIN users u ON s.user_id = u.id
+            JOIN user_profiles up ON up.user_id = u.id
+            WHERE s.class_id = %s
+              AND LOWER(u.role) = 'student'
+              AND u.status = 'Active'
+            ORDER BY u.name ASC
+            """,
+            (class_id,)
+        )
+        rows = cursor.fetchall() or []
+        return jsonify({'status': 'success', 'data': rows})
 
     except pymysql.MySQLError as err:
         return jsonify({'status': 'error', 'message': str(err)}), 500
